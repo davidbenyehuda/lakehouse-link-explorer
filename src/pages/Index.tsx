@@ -20,7 +20,7 @@ const Index = () => {
     setIsLoading(true);
     
     try {
-      const { tables, arches } = generateMockDataset(15);
+      const { tables, arches } = generateMockDataset();
       setTables(tables);
       setArches(arches);
     } catch (error) {

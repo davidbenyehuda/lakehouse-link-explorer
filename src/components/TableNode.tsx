@@ -2,6 +2,7 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Table } from '../types/tables';
+import { ExternalLink } from 'lucide-react';
 
 interface TableNodeProps {
   data: {
@@ -23,13 +24,13 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
 
   return (
     <div 
-      className={`table-node bg-white p-3 border rounded-lg ${selected ? 'ring-2 ring-graph-accent1' : ''}`}
+      className={`table-node bg-white p-3 border rounded-lg shadow-md max-w-xs ${selected ? 'ring-2 ring-graph-accent1' : ''}`}
       style={{ backgroundColor: getBackgroundColor() }}
     >
-      <Handle type="target" position={Position.Top} id="top" />
-      <Handle type="source" position={Position.Bottom} id="bottom" />
+      <Handle type="target" position={Position.Left} id="left" />
+      <Handle type="source" position={Position.Right} id="right" />
       
-      <div className="table-node__header text-graph-text">
+      <div className="table-node__header text-graph-text font-semibold text-sm">
         {table.source_id}
       </div>
       
@@ -60,8 +61,23 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
         ) : null}
       </div>
       
-      <div className="table-node__footer mt-2 pt-1 text-xs text-gray-600 border-t border-gray-200">
-        <span>Rows: {table.row_count.toLocaleString()}</span>
+      <div className="table-node__footer mt-2 pt-1 text-xs border-t border-gray-200">
+        <div className="flex justify-between items-center">
+          <span>Rows: {table.row_count.toLocaleString()}</span>
+          <span>Size: {table.size_in_mb} MB</span>
+        </div>
+        
+        <div className="mt-2 flex justify-between gap-1 text-xs">
+          <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Investigate Queries">
+            <ExternalLink size={10} /> Queries
+          </a>
+          <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Storage Stats">
+            <ExternalLink size={10} /> Storage
+          </a>
+          <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Edit Schema">
+            <ExternalLink size={10} /> Schema
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   ReactFlow, 
   Background, 
@@ -17,10 +16,11 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css'; // Fixed import path for styles
 
-import { Table, ArchDetails } from '../types/tables';
+import { Table, ArchDetails, FilterOptions } from '../types/tables';
 import TableNode from './TableNode';
 import DetailsSidebar from './DetailsSidebar';
 import TableSearch from './TableSearch';
+import TableFilterBar from './TableFilterBar';
 
 interface TablesGraphProps {
   tables: Table[];
@@ -37,39 +37,116 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [selectedArch, setSelectedArch] = useState<ArchDetails | null>(null);
+  const [filters, setFilters] = useState<FilterOptions>({});
   
   const reactFlowInstance = useReactFlow();
 
+  // Extract unique data factories and projects for filters
+  const dataFactories = useMemo(() => {
+    return Array.from(new Set(tables.map(table => table.datafactory_id)));
+  }, [tables]);
+  
+  const projects = useMemo(() => {
+    return Array.from(new Set(tables.map(table => table.project_id)));
+  }, [tables]);
+
+  // Filter tables and arches based on selected criteria
+  const filteredTables = useMemo(() => {
+    if (!Object.keys(filters).length) return tables;
+    
+    return tables.filter(table => {
+      let match = true;
+      
+      if (filters.datafactory_id && table.datafactory_id !== filters.datafactory_id) {
+        match = false;
+      }
+      
+      if (filters.project_id && table.project_id !== filters.project_id) {
+        match = false;
+      }
+      
+      return match;
+    });
+  }, [tables, filters]);
+  
+  const filteredArchIds = useMemo(() => {
+    const tableIds = new Set(filteredTables.map(t => t.id));
+    
+    return arches
+      .filter(arch => {
+        // Keep arches where both source and target are in filtered tables
+        const sourceTargetMatch = tableIds.has(arch.source) && tableIds.has(arch.target);
+        
+        // Apply date filters
+        let dateMatch = true;
+        if (filters.startDate || filters.endDate) {
+          // Get the most recent event timestamp
+          const latestEvent = arch.events.reduce((latest, event) => {
+            const eventDate = new Date(event.timestamp);
+            return !latest || eventDate > latest ? eventDate : latest;
+          }, null as Date | null);
+          
+          if (latestEvent) {
+            if (filters.startDate && latestEvent < filters.startDate) {
+              dateMatch = false;
+            }
+            if (filters.endDate) {
+              // Add one day to include the end date fully
+              const endDatePlusDay = new Date(filters.endDate);
+              endDatePlusDay.setDate(endDatePlusDay.getDate() + 1);
+              if (latestEvent > endDatePlusDay) {
+                dateMatch = false;
+              }
+            }
+          }
+        }
+        
+        return sourceTargetMatch && dateMatch;
+      })
+      .map(arch => arch.id);
+  }, [filteredTables, arches, filters]);
+
   // Convert tables to nodes
   const initializeGraph = useCallback(() => {
-    const initialNodes: Node[] = tables.map((table) => ({
+    const initialNodes: Node[] = filteredTables.map((table) => ({
       id: table.id,
       type: 'tableNode',
       data: { table },
       position: table.position || { x: 0, y: 0 },
     }));
 
-    // Convert arches to edges
-    const initialEdges: Edge[] = arches.map((arch) => {
-      const archColor = getArchColor(arch.insertion_type);
-      
-      return {
-        id: arch.id,
-        source: arch.source,
-        target: arch.target,
-        animated: false,
-        style: { stroke: archColor, strokeWidth: 2 },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: archColor,
-        },
-        data: { ...arch }, // Fixed: Now spread arch data into a new object
-      };
-    });
+    // Convert filtered arches to edges
+    const initialEdges: Edge[] = arches
+      .filter(arch => filteredArchIds.includes(arch.id))
+      .map((arch) => {
+        const archColor = getArchColor(arch.insertion_type);
+        
+        return {
+          id: arch.id,
+          source: arch.source,
+          target: arch.target,
+          animated: false,
+          style: { stroke: archColor, strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: archColor,
+          },
+          data: { ...arch }, // Fixed: Now spread arch data into a new object
+        };
+      });
 
     setNodes(initialNodes);
     setEdges(initialEdges);
-  }, [tables, arches, setNodes, setEdges]);
+    
+    // Reset selections if they are no longer in the filtered data
+    if (selectedTable && !filteredTables.some(t => t.id === selectedTable.id)) {
+      setSelectedTable(null);
+    }
+    
+    if (selectedArch && !filteredArchIds.includes(selectedArch.id)) {
+      setSelectedArch(null);
+    }
+  }, [filteredTables, arches, filteredArchIds, setNodes, setEdges, selectedTable, selectedArch]);
   
   useEffect(() => {
     initializeGraph();
@@ -92,6 +169,11 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
       setSelectedArch(null);
     }
   }, [tables]);
+  
+  // Handle filter changes
+  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
+    setFilters(newFilters);
+  }, []);
   
   // Get color based on insertion type
   const getArchColor = (insertionType: string): string => {
@@ -137,7 +219,18 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
   return (
     <div className="flex h-screen w-full">
       <div className="flex-grow relative">
-        <TableSearch tables={tables} onTableSelect={handleTableSelect} />
+        <div className="absolute top-4 left-4 right-4 z-10">
+          <TableFilterBar 
+            dataFactories={dataFactories}
+            projects={projects}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
+        
+        <div className="absolute bottom-4 left-4 z-10">
+          <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
+        </div>
+        
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -147,6 +240,9 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           fitView
+          fitViewOptions={{
+            padding: 0.2,
+          }}
         >
           <Background color="#aaa" gap={16} />
           <Controls />

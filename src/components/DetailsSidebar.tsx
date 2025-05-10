@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table as TableType, ArchDetails, TableEvent } from "../types/tables";
+import { ExternalLink } from 'lucide-react';
 
 interface DetailsSidebarProps {
   selectedTable?: TableType | null;
@@ -21,6 +22,10 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   if (!selectedTable && !selectedArch) {
     return null;
   }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
 
   const renderTableDetails = () => {
     if (!selectedTable) return null;
@@ -48,7 +53,28 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 <div>{selectedTable.source_id}</div>
                 <div className="font-medium">Row Count:</div>
                 <div>{selectedTable.row_count.toLocaleString()}</div>
+                <div className="font-medium">Size:</div>
+                <div>{selectedTable.size_in_mb} MB</div>
+                <div className="font-medium">Last Accessed:</div>
+                <div>{formatDate(selectedTable.last_accessed)}</div>
+                <div className="font-medium">Query Count:</div>
+                <div>{selectedTable.query_count}</div>
               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <a href="#" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
+                <ExternalLink size={14} />
+                Investigate Query Stats
+              </a>
+              <a href="#" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
+                <ExternalLink size={14} />
+                Storage Statistics
+              </a>
+              <a href="#" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
+                <ExternalLink size={14} />
+                Modify Schema
+              </a>
             </div>
 
             <Separator />
@@ -81,13 +107,13 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   const getInsertionTypeBadge = (type: string) => {
     switch (type) {
       case 'insert_stage_0':
-        return <Badge className="bg-insertion-stage0">Raw JSON</Badge>;
+        return <Badge className="bg-[#4361ee]">Raw JSON</Badge>;
       case 'insert_stage_1':
-        return <Badge className="bg-insertion-stage1">Transform</Badge>;
+        return <Badge className="bg-[#4cc9f0]">Transform</Badge>;
       case 'insert_upsert':
-        return <Badge className="bg-insertion-upsert">Upsert</Badge>;
+        return <Badge className="bg-[#7209b7] text-white">Upsert</Badge>;
       case 'insert_custom':
-        return <Badge className="bg-insertion-custom">Custom</Badge>;
+        return <Badge className="bg-[#f72585] text-white">Custom</Badge>;
       default:
         return <Badge>Unknown</Badge>;
     }
@@ -132,6 +158,10 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                   <div>{selectedArch.statistics.rows.toLocaleString()}</div>
                   <div className="font-medium">Avg. Run Time:</div>
                   <div>{selectedArch.statistics.avgRunTime}s</div>
+                  <div className="font-medium">Last Completed:</div>
+                  <div>{formatDate(selectedArch.statistics.lastCompletedEvent)}</div>
+                  <div className="font-medium">Avg. Time Between Events:</div>
+                  <div>{selectedArch.statistics.avgTimeBetweenEvents} seconds</div>
                 </div>
               </div>
 
@@ -164,9 +194,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
 
               <div className="mt-4">
                 <a href="#" className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-                  </svg>
+                  <ExternalLink size={14} />
                   Investigate Insertion Performance
                 </a>
               </div>
@@ -187,13 +215,33 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <div className="flex justify-between mb-1">
                       <span className="text-sm font-medium">{event.event_type}</span>
                       <span className="text-xs text-gray-500">
-                        {new Date(event.timestamp).toLocaleString()}
+                        {formatDate(event.timestamp)}
                       </span>
                     </div>
-                    <div className="text-xs">
-                      <pre className="whitespace-pre-wrap">
-                        {JSON.stringify(event.details, null, 2)}
-                      </pre>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <span className="font-medium">Status:</span>
+                      <span>{event.details.status}</span>
+                      
+                      {event.details.rows_affected !== undefined && (
+                        <>
+                          <span className="font-medium">Rows Affected:</span>
+                          <span>{event.details.rows_affected.toLocaleString()}</span>
+                        </>
+                      )}
+                      
+                      {event.details.duration_seconds !== undefined && (
+                        <>
+                          <span className="font-medium">Duration:</span>
+                          <span>{event.details.duration_seconds} seconds</span>
+                        </>
+                      )}
+                      
+                      {event.details.success !== undefined && (
+                        <>
+                          <span className="font-medium">Success:</span>
+                          <span>{event.details.success ? 'Yes' : 'No'}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}

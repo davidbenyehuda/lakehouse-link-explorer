@@ -12,12 +12,17 @@ export interface Table {
   columns: Column[];
   row_count: number;
   position?: { x: number; y: number };
+  size_in_mb: number;
+  last_accessed: string;
+  query_count: number;
 }
 
 export interface BatchStatistics {
   count: number;
   rows: number;
   avgRunTime: number;
+  lastCompletedEvent: string;
+  avgTimeBetweenEvents: number; // in seconds
 }
 
 export type InsertionType = 'insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom';
@@ -39,5 +44,18 @@ export interface TableEvent {
   id: string;
   timestamp: string;
   event_type: string;
-  details: any;
+  details: {
+    status: string;
+    rows_affected?: number;
+    duration_seconds?: number;
+    success?: boolean;
+    [key: string]: any;
+  };
+}
+
+export interface FilterOptions {
+  datafactory_id?: string;
+  project_id?: string;
+  startDate?: Date;
+  endDate?: Date;
 }
