@@ -23,7 +23,8 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
     return null;
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date | undefined) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
   };
 
@@ -56,9 +57,9 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 <div className="font-medium">Size:</div>
                 <div>{selectedTable.size_in_mb} MB</div>
                 <div className="font-medium">Last Accessed:</div>
-                <div>{formatDate(selectedTable.last_accessed)}</div>
+                <div>{selectedTable.last_accessed ? formatDate(selectedTable.last_accessed) : 'N/A'}</div>
                 <div className="font-medium">Query Count:</div>
-                <div>{selectedTable.query_count}</div>
+                <div>{selectedTable.query_count || 'N/A'}</div>
               </div>
             </div>
 
@@ -89,7 +90,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {selectedTable.columns.map((col, index) => (
+                  {selectedTable.columns?.map((col, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-mono">{col.name}</TableCell>
                       <TableCell className="font-mono text-gray-600">{col.type}</TableCell>
@@ -122,6 +123,29 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   const renderArchDetails = () => {
     if (!selectedArch) return null;
 
+    // Calculate statistics from events if statistics object is not available
+    const getStatistics = () => {
+      if (selectedArch.statistics) return selectedArch.statistics;
+      
+      const events = selectedArch.events || [];
+      const totalRows = events.reduce((sum, event) => sum + event.rows_affected, 0);
+      const avgRunTime = events.length ? 
+        (events.reduce((sum, event) => sum + event.duration_ms, 0) / events.length / 1000).toFixed(2) : 
+        '0';
+      
+      return {
+        count: events.length,
+        rows: totalRows,
+        avgRunTime,
+        lastCompletedEvent: selectedArch.last_completed_time ? 
+          formatDate(selectedArch.last_completed_time) : 'N/A',
+        avgTimeBetweenEvents: selectedArch.avg_time_between_events_ms ? 
+          (selectedArch.avg_time_between_events_ms / 1000).toFixed(2) : '0',
+      };
+    };
+
+    const statistics = getStatistics();
+
     return (
       <Card>
         <CardHeader>
@@ -153,15 +177,15 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 <h4 className="text-sm font-medium mb-2">Statistics</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="font-medium">Batches:</div>
-                  <div>{selectedArch.statistics.count}</div>
+                  <div>{statistics.count}</div>
                   <div className="font-medium">Rows:</div>
-                  <div>{selectedArch.statistics.rows.toLocaleString()}</div>
+                  <div>{statistics.rows.toLocaleString()}</div>
                   <div className="font-medium">Avg. Run Time:</div>
-                  <div>{selectedArch.statistics.avgRunTime}s</div>
+                  <div>{statistics.avgRunTime}s</div>
                   <div className="font-medium">Last Completed:</div>
-                  <div>{formatDate(selectedArch.statistics.lastCompletedEvent)}</div>
+                  <div>{statistics.lastCompletedEvent}</div>
                   <div className="font-medium">Avg. Time Between Events:</div>
-                  <div>{selectedArch.statistics.avgTimeBetweenEvents} seconds</div>
+                  <div>{statistics.avgTimeBetweenEvents} seconds</div>
                 </div>
               </div>
 
@@ -172,9 +196,9 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <h4 className="text-sm font-medium mb-2">Upsert Configuration</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="font-medium">Primary Key:</div>
-                      <div className="font-mono">{selectedArch.primary_key}</div>
+                      <div className="font-mono">{selectedArch.primary_key || 'N/A'}</div>
                       <div className="font-medium">Order By:</div>
-                      <div className="font-mono">{selectedArch.order_by}</div>
+                      <div className="font-mono">{selectedArch.order_by || 'N/A'}</div>
                     </div>
                   </div>
                 </>
@@ -186,7 +210,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                   <div>
                     <h4 className="text-sm font-medium mb-2">Custom Merge Statement</h4>
                     <div className="bg-gray-100 p-2 rounded font-mono text-xs overflow-x-auto">
-                      {selectedArch.merge_statement}
+                      {selectedArch.merge_statement || 'No merge statement provided'}
                     </div>
                   </div>
                 </>
@@ -203,45 +227,27 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
             <TabsContent value="sql" className="mt-4">
               <div className="bg-gray-100 p-3 rounded-md">
                 <pre className="text-xs font-mono whitespace-pre-wrap">
-                  {selectedArch.sql_query}
+                  {selectedArch.sql_query || 'No SQL query available'}
                 </pre>
               </div>
             </TabsContent>
 
             <TabsContent value="events" className="mt-4">
               <div className="space-y-3">
-                {selectedArch.events.map((event: TableEvent) => (
-                  <div key={event.id} className="bg-gray-50 p-3 rounded-md">
+                {selectedArch.events.map((event, index) => (
+                  <div key={index} className="bg-gray-50 p-3 rounded-md">
                     <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">{event.event_type}</span>
+                      <span className="text-sm font-medium">Event</span>
                       <span className="text-xs text-gray-500">
                         {formatDate(event.timestamp)}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <span className="font-medium">Status:</span>
-                      <span>{event.details.status}</span>
+                      <span className="font-medium">Rows Affected:</span>
+                      <span>{event.rows_affected.toLocaleString()}</span>
                       
-                      {event.details.rows_affected !== undefined && (
-                        <>
-                          <span className="font-medium">Rows Affected:</span>
-                          <span>{event.details.rows_affected.toLocaleString()}</span>
-                        </>
-                      )}
-                      
-                      {event.details.duration_seconds !== undefined && (
-                        <>
-                          <span className="font-medium">Duration:</span>
-                          <span>{event.details.duration_seconds} seconds</span>
-                        </>
-                      )}
-                      
-                      {event.details.success !== undefined && (
-                        <>
-                          <span className="font-medium">Success:</span>
-                          <span>{event.details.success ? 'Yes' : 'No'}</span>
-                        </>
-                      )}
+                      <span className="font-medium">Duration:</span>
+                      <span>{(event.duration_ms / 1000).toFixed(2)} seconds</span>
                     </div>
                   </div>
                 ))}
