@@ -48,7 +48,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({ dataFactories, projects
             <SelectValue placeholder="Select Client" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Clients</SelectItem>
+            <SelectItem value="all">All Clients</SelectItem>
             {dataFactories.map((factory) => (
               <SelectItem key={factory} value={factory}>
                 {factory}
@@ -64,7 +64,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({ dataFactories, projects
             <SelectValue placeholder="Select Project" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Projects</SelectItem>
+            <SelectItem value="all">All Projects</SelectItem>
             {projects.map((proj) => (
               <SelectItem key={proj} value={proj}>
                 {proj}
