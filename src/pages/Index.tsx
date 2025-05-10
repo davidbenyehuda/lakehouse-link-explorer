@@ -55,44 +55,11 @@ const Index = () => {
     loadData();
   }, [toast]);
 
-  const handleAddTable = useCallback((newTableData: Partial<Table>, sourceTableId?: string, createAsSelect?: boolean) => {
-    if (newTableData.id) {
-      // If it's a complete table (from import)
-      setTables(prev => [...prev, newTableData as Table]);
-      return;
-    }
-    
-    // Create new table with the provided data
-    const newTable: Table = {
-      id: crypto.randomUUID(),
-      source_id: newTableData.source_id || 'New Table',
-      datafactory_id: newTableData.datafactory_id || '',
-      project_id: newTableData.project_id || '',
-      row_count: newTableData.row_count || 0,
-      size_in_mb: newTableData.size_in_mb || 0,
-      columns: newTableData.columns || []
-    };
-    
+  // Handle adding a new table - modified to match the expected signature
+  const handleAddTable = useCallback((newTable: Table, newArch?: ArchDetails) => {
     setTables(prev => [...prev, newTable]);
     
-    // If source table is specified, create an arch
-    if (sourceTableId) {
-      const newArch: ArchDetails = {
-        id: crypto.randomUUID(),
-        source: sourceTableId,
-        target: newTable.id,
-        insertion_type: newTableData.insertion_type || 'insert_upsert',
-        events: [{
-          timestamp: new Date(),
-          rows_affected: 0,
-          duration_ms: 0
-        }],
-        primary_key: newTableData.primary_key,
-        order_by: newTableData.order_by,
-        merge_statement: newTableData.merge_statement,
-        sql_query: newTableData.sql_query
-      };
-      
+    if (newArch) {
       setArches(prev => [...prev, newArch]);
     }
     
