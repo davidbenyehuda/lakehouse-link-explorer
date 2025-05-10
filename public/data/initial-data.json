@@ -1,0 +1,255 @@
+
+{
+  "tables": [
+    {
+      "id": "table_A1",
+      "source_id": "project_A_raw",
+      "datafactory_id": "datafactory_1",
+      "project_id": "project_A",
+      "row_count": 5842,
+      "size_in_mb": 45.67,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "name", "type": "string" },
+        { "name": "created_at", "type": "timestamp" }
+      ],
+      "position": { "x": 100, "y": 100 }
+    },
+    {
+      "id": "table_A2",
+      "source_id": "project_A_stage_0",
+      "datafactory_id": "datafactory_1",
+      "project_id": "project_A",
+      "row_count": 5842,
+      "size_in_mb": 48.92,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "name", "type": "string" },
+        { "name": "created_at", "type": "timestamp" },
+        { "name": "processed", "type": "boolean" }
+      ],
+      "position": { "x": 300, "y": 100 }
+    },
+    {
+      "id": "table_A3",
+      "source_id": "project_A_stage_1",
+      "datafactory_id": "datafactory_1",
+      "project_id": "project_A",
+      "row_count": 4921,
+      "size_in_mb": 42.15,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "name", "type": "string" },
+        { "name": "created_at", "type": "timestamp" },
+        { "name": "processed", "type": "boolean" },
+        { "name": "filtered", "type": "boolean" }
+      ],
+      "position": { "x": 300, "y": 250 }
+    },
+    {
+      "id": "table_A4",
+      "source_id": "project_A_custom",
+      "datafactory_id": "datafactory_1",
+      "project_id": "project_A",
+      "row_count": 4250,
+      "size_in_mb": 38.63,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "name", "type": "string" },
+        { "name": "created_at", "type": "timestamp" },
+        { "name": "status", "type": "string" }
+      ],
+      "position": { "x": 500, "y": 100 }
+    },
+    {
+      "id": "table_B1",
+      "source_id": "project_B_raw",
+      "datafactory_id": "datafactory_2",
+      "project_id": "project_B",
+      "row_count": 8753,
+      "size_in_mb": 67.21,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "product_id", "type": "string" },
+        { "name": "quantity", "type": "integer" },
+        { "name": "price", "type": "float" },
+        { "name": "timestamp", "type": "timestamp" }
+      ],
+      "position": { "x": 100, "y": 400 }
+    },
+    {
+      "id": "table_B2",
+      "source_id": "project_B_stage_0",
+      "datafactory_id": "datafactory_2",
+      "project_id": "project_B",
+      "row_count": 8753,
+      "size_in_mb": 70.48,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "product_id", "type": "string" },
+        { "name": "quantity", "type": "integer" },
+        { "name": "price", "type": "float" },
+        { "name": "timestamp", "type": "timestamp" },
+        { "name": "total", "type": "float" }
+      ],
+      "position": { "x": 300, "y": 400 }
+    },
+    {
+      "id": "table_B3",
+      "source_id": "project_B_stage_1",
+      "datafactory_id": "datafactory_2",
+      "project_id": "project_B",
+      "row_count": 7982,
+      "size_in_mb": 65.33,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "product_id", "type": "string" },
+        { "name": "quantity", "type": "integer" },
+        { "name": "price", "type": "float" },
+        { "name": "timestamp", "type": "timestamp" },
+        { "name": "total", "type": "float" },
+        { "name": "discount_applied", "type": "boolean" }
+      ],
+      "position": { "x": 300, "y": 550 }
+    },
+    {
+      "id": "table_B4",
+      "source_id": "project_B_custom",
+      "datafactory_id": "datafactory_2",
+      "project_id": "project_B",
+      "row_count": 7431,
+      "size_in_mb": 61.89,
+      "columns": [
+        { "name": "id", "type": "integer" },
+        { "name": "product_id", "type": "string" },
+        { "name": "quantity", "type": "integer" },
+        { "name": "price", "type": "float" },
+        { "name": "timestamp", "type": "timestamp" },
+        { "name": "total", "type": "float" },
+        { "name": "discount_applied", "type": "boolean" },
+        { "name": "final_price", "type": "float" }
+      ],
+      "position": { "x": 500, "y": 550 }
+    }
+  ],
+  "arches": [
+    {
+      "id": "arch_A1",
+      "source": "table_A1",
+      "target": "table_A2",
+      "insertion_type": "insert_stage_0",
+      "events": [
+        {
+          "timestamp": "2023-05-01T08:00:00.000Z",
+          "rows_affected": 5842,
+          "duration_ms": 3250
+        },
+        {
+          "timestamp": "2023-05-02T08:00:00.000Z",
+          "rows_affected": 120,
+          "duration_ms": 500
+        },
+        {
+          "timestamp": "2023-05-03T08:00:00.000Z",
+          "rows_affected": 85,
+          "duration_ms": 420
+        }
+      ]
+    },
+    {
+      "id": "arch_A2",
+      "source": "table_A1",
+      "target": "table_A3",
+      "insertion_type": "insert_stage_1",
+      "events": [
+        {
+          "timestamp": "2023-05-01T08:15:00.000Z",
+          "rows_affected": 4921,
+          "duration_ms": 2850
+        },
+        {
+          "timestamp": "2023-05-02T08:15:00.000Z",
+          "rows_affected": 105,
+          "duration_ms": 470
+        }
+      ]
+    },
+    {
+      "id": "arch_A3",
+      "source": "table_A2",
+      "target": "table_A4",
+      "insertion_type": "insert_upsert",
+      "primary_key": "id",
+      "order_by": "created_at DESC",
+      "events": [
+        {
+          "timestamp": "2023-05-01T08:30:00.000Z",
+          "rows_affected": 4250,
+          "duration_ms": 1950
+        },
+        {
+          "timestamp": "2023-05-02T08:30:00.000Z",
+          "rows_affected": 112,
+          "duration_ms": 320
+        }
+      ]
+    },
+    {
+      "id": "arch_B1",
+      "source": "table_B1",
+      "target": "table_B2",
+      "insertion_type": "insert_stage_0",
+      "events": [
+        {
+          "timestamp": "2023-05-01T10:00:00.000Z",
+          "rows_affected": 8753,
+          "duration_ms": 4120
+        },
+        {
+          "timestamp": "2023-05-02T10:00:00.000Z",
+          "rows_affected": 215,
+          "duration_ms": 650
+        }
+      ]
+    },
+    {
+      "id": "arch_B2",
+      "source": "table_B1",
+      "target": "table_B3",
+      "insertion_type": "insert_stage_1",
+      "events": [
+        {
+          "timestamp": "2023-05-01T10:15:00.000Z",
+          "rows_affected": 7982,
+          "duration_ms": 3750
+        },
+        {
+          "timestamp": "2023-05-02T10:15:00.000Z",
+          "rows_affected": 195,
+          "duration_ms": 580
+        }
+      ]
+    },
+    {
+      "id": "arch_B3",
+      "source": "table_B3",
+      "target": "table_B4",
+      "insertion_type": "insert_custom",
+      "merge_statement": "MERGE INTO table_B4 TARGET USING table_B3 SOURCE ON TARGET.id = SOURCE.id WHEN MATCHED THEN UPDATE SET TARGET.final_price = SOURCE.price * (1 - CASE WHEN SOURCE.discount_applied THEN 0.1 ELSE 0 END) WHEN NOT MATCHED THEN INSERT (id, product_id, quantity, price, timestamp, total, discount_applied, final_price) VALUES (SOURCE.id, SOURCE.product_id, SOURCE.quantity, SOURCE.price, SOURCE.timestamp, SOURCE.total, SOURCE.discount_applied, SOURCE.price * (1 - CASE WHEN SOURCE.discount_applied THEN 0.1 ELSE 0 END))",
+      "events": [
+        {
+          "timestamp": "2023-05-01T10:30:00.000Z",
+          "rows_affected": 7431,
+          "duration_ms": 2850
+        },
+        {
+          "timestamp": "2023-05-02T10:30:00.000Z",
+          "rows_affected": 180,
+          "duration_ms": 520
+        }
+      ]
+    }
+  ],
+  "version": "1.0",
+  "exportedAt": "2023-05-10T12:00:00.000Z"
+}

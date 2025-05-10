@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
     project_id: '',
     size_in_mb: 0,
     row_count: 0,
-    sourceTableId: '',
+    sourceTableId: 'none',
     createAsSelect: false,
     insertion_type: '',
     primary_key: '',
@@ -38,9 +37,10 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
     columns: [] as TableColumn[]
   });
   
-  const [showSchemaEditor, setShowSchemaEditor] = useState(false);
+  const [showSchemaEditor, setShowSchemaEditor] = useState(true);
   const [columnName, setColumnName] = useState('');
   const [columnType, setColumnType] = useState('');
+  const [schemaError, setSchemaError] = useState('');
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -51,7 +51,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
         project_id: projects[0] || '',
         size_in_mb: 0,
         row_count: 0,
-        sourceTableId: '',
+        sourceTableId: 'none',
         createAsSelect: false,
         insertion_type: '',
         primary_key: '',
@@ -59,7 +59,8 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
         merge_statement: '',
         columns: []
       });
-      setShowSchemaEditor(false);
+      setShowSchemaEditor(true);
+      setSchemaError('');
     }
   }, [open, dataFactories, projects]);
 
@@ -67,18 +68,26 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       
-      // If source table is cleared, reset related fields
-      if (field === 'sourceTableId' && !value) {
-        newData.insertion_type = '';
-        newData.primary_key = '';
-        newData.order_by = '';
-        newData.merge_statement = '';
-        
-        // Toggle schema editor visibility
-        setShowSchemaEditor(true);
-      } else if (field === 'sourceTableId' && value) {
-        // If source table is selected, show insertion options
-        setShowSchemaEditor(false);
+      // If source table is changed, reset related fields
+      if (field === 'sourceTableId') {
+        if (value === 'none') {
+          newData.insertion_type = '';
+          newData.primary_key = '';
+          newData.order_by = '';
+          newData.merge_statement = '';
+          newData.createAsSelect = false;
+          
+          // If no source table, always show schema editor
+          setShowSchemaEditor(true);
+        } else {
+          // If source table is selected, keep options
+          setShowSchemaEditor(!newData.createAsSelect);
+        }
+      }
+      
+      // If create as select is toggled, update schema editor visibility
+      if (field === 'createAsSelect') {
+        setShowSchemaEditor(!value);
       }
       
       return newData;
@@ -93,6 +102,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
       }));
       setColumnName('');
       setColumnType('');
+      setSchemaError('');
     }
   };
 
@@ -111,21 +121,24 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
       return;
     }
     
-    // If no source table is selected, ensure schema is provided
-    if (!formData.sourceTableId && !formData.createAsSelect && formData.columns.length === 0) {
-      alert("Please define at least one column for the table schema.");
+    // If no source table or not using createAsSelect, require schema
+    if ((formData.sourceTableId === 'none' || !formData.createAsSelect) && formData.columns.length === 0) {
+      setSchemaError("Please define at least one column for the table schema");
       return;
     }
     
-    // If source table is selected but no insertion type is chosen
-    if (formData.sourceTableId && !formData.insertion_type) {
-      alert("Please select an insertion type for the connection.");
+    // If source table is selected but not 'none', require insertion type
+    if (formData.sourceTableId !== 'none' && !formData.insertion_type) {
+      setSchemaError("Please select an insertion type for the connection");
       return;
     }
+    
+    // Clear any previous errors
+    setSchemaError('');
     
     onTableCreate(
       formData, 
-      formData.sourceTableId || undefined,
+      formData.sourceTableId !== 'none' ? formData.sourceTableId : undefined,
       formData.createAsSelect
     );
     
@@ -213,7 +226,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
               </Select>
             </div>
 
-            {formData.sourceTableId && formData.sourceTableId !== "none" && (
+            {formData.sourceTableId !== 'none' && (
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -226,7 +239,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
               </div>
             )}
 
-            {formData.sourceTableId && formData.sourceTableId !== "none" && (
+            {formData.sourceTableId !== 'none' && (
               <div className="space-y-2">
                 <Label htmlFor="insertion_type">Connection Type</Label>
                 <Select
@@ -280,7 +293,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
               </div>
             )}
 
-            {(!formData.sourceTableId || formData.sourceTableId === "none" || !formData.createAsSelect) && showSchemaEditor && (
+            {showSchemaEditor && (
               <div className="space-y-4">
                 <Label>Table Schema</Label>
                 
@@ -305,6 +318,10 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                   </div>
                   <Button type="button" size="sm" onClick={addColumn} className="mb-0">Add</Button>
                 </div>
+                
+                {schemaError && (
+                  <p className="text-red-500 text-sm">{schemaError}</p>
+                )}
                 
                 {formData.columns.length > 0 && (
                   <div className="border rounded-md p-2 max-h-[200px] overflow-y-auto">

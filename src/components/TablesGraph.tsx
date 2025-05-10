@@ -30,6 +30,7 @@ interface TablesGraphProps {
   tables: Table[];
   arches: ArchDetails[];
   onAddTable?: (newTable: Table, newArch?: ArchDetails) => void;
+  onAddArch?: (newArch: ArchDetails) => void;
 }
 
 // Custom node types
@@ -37,7 +38,7 @@ const nodeTypes: NodeTypes = {
   tableNode: TableNode,
 };
 
-const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable }) => {
+const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, onAddArch }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
@@ -406,7 +407,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
   // Handle table creation
   const handleCreateTable = (tableData: Partial<Table>, sourceTableId?: string, createAsSelect?: boolean) => {
     if (!onAddTable) return;
-
+    
     const newTable: Table = {
       id: uuidv4(),
       source_id: tableData.source_id || 'New Table',
@@ -442,7 +443,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
 
   // Handle arch creation
   const handleCreateArch = (archData: Partial<ArchDetails>) => {
-    if (!archData.source || !archData.target || !archData.insertion_type) return;
+    if (!archData.source || !archData.target || !archData.insertion_type || !onAddArch) return;
 
     const newArch: ArchDetails = {
       id: uuidv4(),
@@ -460,7 +461,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
       sql_query: archData.sql_query
     };
 
-    onAddTable(undefined, newArch);
+    onAddArch(newArch);
   };
 
   return (
