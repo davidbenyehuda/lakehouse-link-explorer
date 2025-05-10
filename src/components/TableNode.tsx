@@ -7,10 +7,11 @@ interface TableNodeProps {
   data: {
     table: Table;
   };
-  selected: boolean;
+  selected?: boolean;
+  id: string;
 }
 
-const TableNode: React.FC<TableNodeProps> = ({ data, selected }) => {
+const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
   const { table } = data;
   
   // Calculate background color based on datafactory_id for visual grouping

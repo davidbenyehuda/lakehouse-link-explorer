@@ -12,9 +12,10 @@ import {
   Edge,
   Node,
   useReactFlow,
-  MarkerType
+  MarkerType,
+  NodeTypes
 } from '@xyflow/react';
-import 'reactflow/dist/style.css';
+import '@xyflow/react/dist/style.css'; // Fixed import path for styles
 
 import { Table, ArchDetails } from '../types/tables';
 import TableNode from './TableNode';
@@ -27,7 +28,7 @@ interface TablesGraphProps {
 }
 
 // Custom node types
-const nodeTypes = {
+const nodeTypes: NodeTypes = {
   tableNode: TableNode,
 };
 
@@ -62,7 +63,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
           type: MarkerType.ArrowClosed,
           color: archColor,
         },
-        data: arch,
+        data: { ...arch }, // Fixed: Now spread arch data into a new object
       };
     });
 
