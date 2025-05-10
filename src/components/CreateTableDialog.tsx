@@ -203,7 +203,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                   <SelectValue placeholder="Select Source Table (Optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {tables.map((table) => (
                     <SelectItem key={table.id} value={table.id}>
                       {table.source_id} ({table.datafactory_id} - {table.project_id})
@@ -213,7 +213,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
               </Select>
             </div>
 
-            {formData.sourceTableId && (
+            {formData.sourceTableId && formData.sourceTableId !== "none" && (
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -226,7 +226,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
               </div>
             )}
 
-            {formData.sourceTableId && (
+            {formData.sourceTableId && formData.sourceTableId !== "none" && (
               <div className="space-y-2">
                 <Label htmlFor="insertion_type">Connection Type</Label>
                 <Select
@@ -280,7 +280,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
               </div>
             )}
 
-            {(!formData.sourceTableId || !formData.createAsSelect) && showSchemaEditor && (
+            {(!formData.sourceTableId || formData.sourceTableId === "none" || !formData.createAsSelect) && showSchemaEditor && (
               <div className="space-y-4">
                 <Label>Table Schema</Label>
                 

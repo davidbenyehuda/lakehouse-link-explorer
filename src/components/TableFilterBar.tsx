@@ -24,8 +24,8 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({ dataFactories, projects
   const handleFilterApply = () => {
     const filters: FilterOptions = {};
     
-    if (datafactory) filters.datafactory_id = datafactory;
-    if (project) filters.project_id = project;
+    if (datafactory && datafactory !== "all") filters.datafactory_id = datafactory;
+    if (project && project !== "all") filters.project_id = project;
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
     
@@ -88,6 +88,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({ dataFactories, projects
               selected={startDate}
               onSelect={setStartDate}
               initialFocus
+              className="pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
@@ -107,6 +108,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({ dataFactories, projects
               selected={endDate}
               onSelect={setEndDate}
               initialFocus
+              className="pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
