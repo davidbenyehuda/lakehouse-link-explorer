@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table as TableType, ArchDetails } from "../types/tables";
-import { ExternalLink, RefreshCw, Sync, Database } from 'lucide-react';
+import { ExternalLink, RefreshCw, ArrowUpDown as SyncIcon, Database } from 'lucide-react';
 
 interface DetailsSidebarProps {
   selectedTable?: TableType | null;
@@ -145,7 +144,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                       size="sm"
                       className="flex items-center gap-1"
                     >
-                      <Sync size={16} />
+                      <SyncIcon size={16} />
                       Sync
                     </Button>
                   </DialogTrigger>

@@ -1,4 +1,3 @@
-
 export interface Table {
   id: string;
   source_id: string;
@@ -10,6 +9,11 @@ export interface Table {
   position?: { x: number; y: number };
   last_accessed?: Date;
   query_count?: number;
+  insertion_type?: string;
+  primary_key?: string;
+  order_by?: string;
+  merge_statement?: string;
+  sql_query?: string;
 }
 
 export interface TableColumn {

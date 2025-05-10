@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, ArchDetails } from "../types/tables";
-import { ArrowsUpDown } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 
 interface CreateArchDialogProps {
   tables: Table[];
@@ -79,7 +78,7 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-1">
-          <ArrowsUpDown size={16} />
+          <ArrowUpDown size={16} />
           Create Connection
         </Button>
       </DialogTrigger>
