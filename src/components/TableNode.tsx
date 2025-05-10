@@ -26,7 +26,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
 
   return (
     <div 
-      className={`table-node bg-white p-2 border rounded-lg shadow-md max-w-xs ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
+      className={`table-node bg-white p-2 border rounded-lg shadow-md w-[180px] ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       style={{ backgroundColor: getBackgroundColor() }}
     >
       <Handle type="target" position={Position.Left} id="left" />
@@ -41,6 +41,15 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       </div>
+      
+      {!isExpanded && (
+        <div className="mt-1 text-xs text-gray-600">
+          <div className="flex justify-between">
+            <span>Rows: {table.row_count.toLocaleString()}</span>
+            <span>{table.size_in_mb} MB</span>
+          </div>
+        </div>
+      )}
       
       {isExpanded && (
         <div className="table-node__content mt-2">

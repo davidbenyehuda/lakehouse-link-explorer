@@ -23,6 +23,7 @@ import DetailsSidebar from './DetailsSidebar';
 import TableSearch from './TableSearch';
 import TableFilterBar from './TableFilterBar';
 import CreateTableDialog from './CreateTableDialog';
+import CreateArchDialog from './CreateArchDialog';
 import { v4 as uuidv4 } from 'uuid';
 
 interface TablesGraphProps {
@@ -160,7 +161,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
     
     const positionedTables = [...tablesToPosition];
     let factoryY = 50;
-    const verticalGapBetweenFactories = 400;
+    const verticalGapBetweenFactories = 600; // Increased from 400
     
     // Position each data factory group
     Object.entries(dataFactoryGroups).forEach(([factoryId, factoryTables]) => {
@@ -175,8 +176,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
         projectGroups[projectKey].push(table);
       });
       
-      let projectX = 50;
-      const horizontalGapBetweenProjects = 600;
+      let projectX = 100; // Increased from 50
+      const horizontalGapBetweenProjects = 800; // Increased from 600
       
       // Position each project group within this factory
       Object.entries(projectGroups).forEach(([projectId, projectTables]) => {
@@ -197,7 +198,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
         
         // Position trees starting from source tables
         let treeX = projectX;
-        const horizontalGapBetweenTrees = 300;
+        const horizontalGapBetweenTrees = 400; // Increased from 300
         
         sourceTables.forEach(sourceTable => {
           // Start a new tree at this X position
@@ -220,7 +221,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
               projectTables.some(t => t.id === arch.target)
             );
             
-            const verticalGap = 150;
+            const verticalGap = 200; // Increased from 150
             let yOffset = 0;
             
             downstreamArches.forEach((arch, index) => {
@@ -229,7 +230,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
                 positionedIds.add(targetTable.id);
                 
                 const targetY = branchY + yOffset;
-                const targetX = currentX + (level * 200);
+                const targetX = currentX + (level * 250); // Increased from 200
                 
                 const targetTableIndex = positionedTables.findIndex(t => t.id === targetTable.id);
                 if (targetTableIndex !== -1) {
@@ -274,7 +275,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
       type: 'tableNode',
       data: { table, isFocused: focusedTable === table.id },
       position: table.position || { x: 0, y: 0 },
-      draggable: false, // Make nodes non-draggable
+      draggable: false,
     }));
 
     // Convert filtered arches to edges
@@ -288,11 +289,11 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
           source: arch.source,
           target: arch.target,
           animated: false,
-          style: { stroke: archColor, strokeWidth: 2 },
+          style: { stroke: archColor, strokeWidth: 3 }, // Increased stroke width
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            width: 30,  // Increased marker width
-            height: 30, // Increased marker height
+            width: 35,  // Increased marker width
+            height: 35, // Increased marker height
             color: archColor,
           },
           data: { ...arch },
@@ -403,7 +404,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
   };
 
   // Handle table creation
-  const handleCreateTable = (tableData: Partial<Table>, sourceTableId?: string) => {
+  const handleCreateTable = (tableData: Partial<Table>, sourceTableId?: string, createAsSelect?: boolean) => {
     if (!onAddTable) return;
 
     const newTable: Table = {
@@ -413,47 +414,82 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable })
       project_id: tableData.project_id || projects[0],
       row_count: tableData.row_count || 0,
       size_in_mb: tableData.size_in_mb || 0,
-      columns: []
+      columns: tableData.columns || []
     };
 
     // If source table is specified, create an arch
     let newArch: ArchDetails | undefined = undefined;
-    if (sourceTableId) {
+    if (sourceTableId && tableData.insertion_type) {
       newArch = {
         id: uuidv4(),
         source: sourceTableId,
         target: newTable.id,
-        insertion_type: 'insert_stage_0',
+        insertion_type: tableData.insertion_type,
         events: [{
           timestamp: new Date(),
           rows_affected: 0,
           duration_ms: 0
-        }]
+        }],
+        primary_key: tableData.primary_key,
+        order_by: tableData.order_by,
+        merge_statement: tableData.merge_statement,
+        sql_query: tableData.sql_query
       };
     }
 
     onAddTable(newTable, newArch);
   };
 
+  // Handle arch creation
+  const handleCreateArch = (archData: Partial<ArchDetails>) => {
+    if (!archData.source || !archData.target || !archData.insertion_type) return;
+
+    const newArch: ArchDetails = {
+      id: uuidv4(),
+      source: archData.source,
+      target: archData.target,
+      insertion_type: archData.insertion_type,
+      events: [{
+        timestamp: new Date(),
+        rows_affected: 0,
+        duration_ms: 0
+      }],
+      primary_key: archData.primary_key,
+      order_by: archData.order_by,
+      merge_statement: archData.merge_statement,
+      sql_query: archData.sql_query
+    };
+
+    onAddTable(undefined, newArch);
+  };
+
   return (
     <div className="flex h-screen w-full">
       <div className="flex-grow relative">
         <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1">
             <TableFilterBar 
               dataFactories={dataFactories}
               projects={projects}
               onFilterChange={handleFilterChange}
             />
-            <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
+            <div className="flex-1">
+              <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
+            </div>
           </div>
           
-          <CreateTableDialog 
-            tables={tables}
-            dataFactories={dataFactories}
-            projects={projects}
-            onTableCreate={handleCreateTable}
-          />
+          <div className="flex gap-2">
+            <CreateTableDialog 
+              tables={tables}
+              dataFactories={dataFactories}
+              projects={projects}
+              onTableCreate={handleCreateTable}
+            />
+            <CreateArchDialog
+              tables={tables}
+              onArchCreate={handleCreateArch}
+            />
+          </div>
         </div>
         
         {focusedTable && (

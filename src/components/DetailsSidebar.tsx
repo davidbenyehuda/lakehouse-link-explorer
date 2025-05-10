@@ -1,12 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Table as TableType, ArchDetails, TableEvent } from "../types/tables";
-import { ExternalLink } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table as TableType, ArchDetails } from "../types/tables";
+import { ExternalLink, RefreshCw, Sync, Database } from 'lucide-react';
 
 interface DetailsSidebarProps {
   selectedTable?: TableType | null;
@@ -19,6 +23,12 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   selectedArch,
   onClose,
 }) => {
+  const [showRefreshDialog, setShowRefreshDialog] = useState(false);
+  const [showSyncDialog, setShowSyncDialog] = useState(false);
+  const [refreshStartTime, setRefreshStartTime] = useState("");
+  const [syncStartTime, setSyncStartTime] = useState("");
+  const [syncEndTime, setSyncEndTime] = useState("");
+
   if (!selectedTable && !selectedArch) {
     return null;
   }
@@ -26,6 +36,23 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   const formatDate = (dateString: string | Date | undefined) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
+  };
+
+  const handleRecreate = () => {
+    console.log("Recreate/Migrate table:", selectedTable?.source_id);
+    // Implement actual recreate logic here
+  };
+
+  const handleRefresh = (startTime: string) => {
+    console.log("Refresh table:", selectedTable?.source_id, "Start time:", startTime);
+    setShowRefreshDialog(false);
+    // Implement actual refresh logic here
+  };
+
+  const handleSync = (startTime: string, endTime: string) => {
+    console.log("Sync table:", selectedTable?.source_id, "Start time:", startTime, "End time:", endTime);
+    setShowSyncDialog(false);
+    // Implement actual sync logic here
   };
 
   const renderTableDetails = () => {
@@ -62,6 +89,100 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 <div>{selectedTable.query_count || 'N/A'}</div>
               </div>
             </div>
+
+            <Separator />
+            
+            <div>
+              <h4 className="text-sm font-medium mb-2">Actions</h4>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRecreate}
+                  className="flex items-center gap-1"
+                >
+                  <Database size={16} />
+                  Recreate/Migrate
+                </Button>
+                
+                <Dialog open={showRefreshDialog} onOpenChange={setShowRefreshDialog}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <RefreshCw size={16} />
+                      Refresh
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Refresh Table</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="startTime">Start Time</Label>
+                        <Input 
+                          id="startTime" 
+                          type="datetime-local" 
+                          value={refreshStartTime} 
+                          onChange={(e) => setRefreshStartTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowRefreshDialog(false)}>Cancel</Button>
+                      <Button onClick={() => handleRefresh(refreshStartTime)}>Refresh</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
+                <Dialog open={showSyncDialog} onOpenChange={setShowSyncDialog}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <Sync size={16} />
+                      Sync
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Sync Table</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="syncStartTime">Start Time</Label>
+                        <Input 
+                          id="syncStartTime" 
+                          type="datetime-local" 
+                          value={syncStartTime} 
+                          onChange={(e) => setSyncStartTime(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="syncEndTime">End Time</Label>
+                        <Input 
+                          id="syncEndTime" 
+                          type="datetime-local" 
+                          value={syncEndTime} 
+                          onChange={(e) => setSyncEndTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowSyncDialog(false)}>Cancel</Button>
+                      <Button onClick={() => handleSync(syncStartTime, syncEndTime)}>Sync</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+
+            <Separator />
 
             <div className="flex flex-wrap gap-2">
               <a href="#" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">

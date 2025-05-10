@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -14,6 +14,15 @@ const TableSearch: React.FC<TableSearchProps> = ({ tables, onTableSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Table[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      handleSearch();
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [searchTerm]);
 
   const handleSearch = () => {
     if (!searchTerm.trim()) {
@@ -34,10 +43,6 @@ const TableSearch: React.FC<TableSearchProps> = ({ tables, onTableSelect }) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    if (!e.target.value.trim()) {
-      setIsSearching(false);
-      setSearchResults([]);
-    }
   };
 
   const handleTableClick = (tableId: string) => {
@@ -48,8 +53,8 @@ const TableSearch: React.FC<TableSearchProps> = ({ tables, onTableSelect }) => {
   };
 
   return (
-    <div className="relative">
-      <div className="flex items-center gap-2 w-64">
+    <div className="relative w-full">
+      <div className="flex items-center gap-2 w-full">
         <Input
           value={searchTerm}
           onChange={handleInputChange}
