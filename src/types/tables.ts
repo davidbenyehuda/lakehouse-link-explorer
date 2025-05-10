@@ -1,56 +1,34 @@
 
-export interface Column {
+export interface Table {
+  id: string;
+  source_id: string;
+  datafactory_id: string;
+  project_id: string;
+  row_count: number;
+  size_in_mb: number;
+  columns?: TableColumn[];
+  position?: { x: number; y: number };
+}
+
+export interface TableColumn {
   name: string;
   type: string;
 }
 
-export interface Table {
-  id: string;
-  datafactory_id: string;
-  project_id: string;
-  source_id: string;
-  columns: Column[];
-  row_count: number;
-  position?: { x: number; y: number };
-  size_in_mb: number;
-  last_accessed: string;
-  query_count: number;
+export interface ArchEvent {
+  timestamp: Date;
+  rows_affected: number;
+  duration_ms: number;
 }
-
-export interface BatchStatistics {
-  count: number;
-  rows: number;
-  avgRunTime: number;
-  lastCompletedEvent: string;
-  avgTimeBetweenEvents: number; // in seconds
-}
-
-export type InsertionType = 'insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom';
 
 export interface ArchDetails {
   id: string;
   source: string;
   target: string;
-  sql_query: string;
-  events: TableEvent[];
-  statistics: BatchStatistics;
-  insertion_type: InsertionType;
-  primary_key?: string;
-  order_by?: string;
-  merge_statement?: string;
-}
-
-export interface TableEvent {
-  id: string;
-  timestamp: string;
-  event_type: string;
-  details: {
-    status: string;
-    rows_affected?: number;
-    duration_seconds?: number;
-    success?: boolean;
-    [key: string]: any;
-  };
+  insertion_type: string;
+  events: ArchEvent[];
+  avg_time_between_events_ms?: number;
+  last_completed_time?: Date;
 }
 
 export interface FilterOptions {
@@ -58,4 +36,5 @@ export interface FilterOptions {
   project_id?: string;
   startDate?: Date;
   endDate?: Date;
+  tableId?: string;
 }

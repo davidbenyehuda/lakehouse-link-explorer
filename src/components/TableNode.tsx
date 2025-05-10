@@ -7,13 +7,14 @@ import { ExternalLink } from 'lucide-react';
 interface TableNodeProps {
   data: {
     table: Table;
+    isFocused?: boolean;
   };
   selected?: boolean;
   id: string;
 }
 
 const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
-  const { table } = data;
+  const { table, isFocused } = data;
   
   // Calculate background color based on datafactory_id for visual grouping
   const getBackgroundColor = () => {
@@ -24,7 +25,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
 
   return (
     <div 
-      className={`table-node bg-white p-3 border rounded-lg shadow-md max-w-xs ${selected ? 'ring-2 ring-graph-accent1' : ''}`}
+      className={`table-node bg-white p-3 border rounded-lg shadow-md max-w-xs ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       style={{ backgroundColor: getBackgroundColor() }}
     >
       <Handle type="target" position={Position.Left} id="left" />
