@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { Table } from '../types/tables';
 
 interface TableSearchProps {
@@ -47,50 +48,48 @@ const TableSearch: React.FC<TableSearchProps> = ({ tables, onTableSelect }) => {
   };
 
   return (
-    <div className="absolute top-4 left-4 z-10 w-72">
-      <div className="bg-white p-3 rounded-lg shadow-md">
-        <div className="flex gap-2">
-          <Input
-            value={searchTerm}
-            onChange={handleInputChange}
-            placeholder="Search tables..."
-            className="flex-1"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleSearch();
-              }
-            }}
-          />
-          <Button onClick={handleSearch} className="bg-graph-node text-white">
-            Search
-          </Button>
-        </div>
-
-        {isSearching && (
-          <div className="mt-2 max-h-72 overflow-y-auto bg-white rounded-md border">
-            {searchResults.length > 0 ? (
-              <ul className="divide-y">
-                {searchResults.map((table) => (
-                  <li
-                    key={table.id}
-                    className="p-2 text-sm hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleTableClick(table.id)}
-                  >
-                    <div className="font-medium">{table.source_id}</div>
-                    <div className="text-xs text-gray-600">
-                      Client: {table.datafactory_id} • Project: {table.project_id}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="p-2 text-sm text-gray-500 text-center">
-                No tables found
-              </div>
-            )}
-          </div>
-        )}
+    <div className="relative">
+      <div className="flex items-center gap-2 w-64">
+        <Input
+          value={searchTerm}
+          onChange={handleInputChange}
+          placeholder="Search tables..."
+          className="flex-1"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
+        />
+        <Button variant="ghost" size="icon" onClick={handleSearch}>
+          <Search className="h-4 w-4" />
+        </Button>
       </div>
+
+      {isSearching && (
+        <div className="absolute mt-1 w-full max-h-72 overflow-y-auto bg-white rounded-md border z-50">
+          {searchResults.length > 0 ? (
+            <ul className="divide-y">
+              {searchResults.map((table) => (
+                <li
+                  key={table.id}
+                  className="p-2 text-sm hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleTableClick(table.id)}
+                >
+                  <div className="font-medium">{table.source_id}</div>
+                  <div className="text-xs text-gray-600">
+                    Client: {table.datafactory_id} • Project: {table.project_id}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="p-2 text-sm text-gray-500 text-center">
+              No tables found
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

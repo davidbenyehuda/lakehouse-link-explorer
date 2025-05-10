@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ReactFlowProvider
 } from '@xyflow/react';
@@ -8,11 +8,13 @@ import '@xyflow/react/dist/style.css';
 import TablesGraph from '../components/TablesGraph';
 import { generateMockDataset } from '../utils/mockData';
 import { Table, ArchDetails } from '../types/tables';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [tables, setTables] = useState<Table[]>([]);
   const [arches, setArches] = useState<ArchDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // In a real application, this would fetch data from your API
@@ -29,6 +31,19 @@ const Index = () => {
       setIsLoading(false);
     }
   }, []);
+
+  const handleAddTable = useCallback((newTable: Table, newArch?: ArchDetails) => {
+    setTables(prev => [...prev, newTable]);
+    
+    if (newArch) {
+      setArches(prev => [...prev, newArch]);
+    }
+    
+    toast({
+      title: "Table Created",
+      description: `New table "${newTable.source_id}" has been created.`
+    });
+  }, [toast]);
 
   if (isLoading) {
     return (
@@ -50,7 +65,11 @@ const Index = () => {
       
       <div className="pt-16 h-full">
         <ReactFlowProvider>
-          <TablesGraph tables={tables} arches={arches} />
+          <TablesGraph 
+            tables={tables} 
+            arches={arches} 
+            onAddTable={handleAddTable} 
+          />
         </ReactFlowProvider>
       </div>
     </div>

@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Table } from '../types/tables';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface TableNodeProps {
   data: {
@@ -15,6 +15,7 @@ interface TableNodeProps {
 
 const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
   const { table, isFocused } = data;
+  const [isExpanded, setIsExpanded] = useState(false);
   
   // Calculate background color based on datafactory_id for visual grouping
   const getBackgroundColor = () => {
@@ -25,61 +26,66 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
 
   return (
     <div 
-      className={`table-node bg-white p-3 border rounded-lg shadow-md max-w-xs ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
+      className={`table-node bg-white p-2 border rounded-lg shadow-md max-w-xs ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       style={{ backgroundColor: getBackgroundColor() }}
     >
       <Handle type="target" position={Position.Left} id="left" />
       <Handle type="source" position={Position.Right} id="right" />
       
-      <div className="table-node__header text-graph-text font-semibold text-sm">
-        {table.source_id}
+      <div className="table-node__header text-graph-text font-semibold text-sm flex justify-between items-center">
+        <div className="truncate">{table.source_id}</div>
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)} 
+          className="text-gray-500 hover:text-gray-700 ml-2"
+        >
+          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
       </div>
       
-      <div className="table-node__content">
-        <div className="text-xs text-gray-600 mb-1">
-          <span>Client: {table.datafactory_id}</span>
-          <span className="mx-2">•</span>
-          <span>Project: {table.project_id}</span>
-        </div>
-        
-        {table.columns && table.columns.length > 0 ? (
-          <div className="mt-2 text-xs">
-            <div className="font-semibold mb-1">Columns:</div>
-            <ul className="space-y-0.5 max-h-32 overflow-y-auto pr-1">
-              {table.columns.slice(0, 5).map((col, index) => (
-                <li key={index} className="flex justify-between">
-                  <span className="font-mono">{col.name}</span>
-                  <span className="text-gray-500 font-mono">{col.type}</span>
-                </li>
-              ))}
-              {table.columns.length > 5 && (
-                <li className="text-gray-500 italic text-center">
-                  + {table.columns.length - 5} more
-                </li>
-              )}
-            </ul>
+      {isExpanded && (
+        <div className="table-node__content mt-2">
+          <div className="text-xs text-gray-600 mb-1">
+            <span>Client: {table.datafactory_id}</span>
+            <span className="mx-2">•</span>
+            <span>Project: {table.project_id}</span>
           </div>
-        ) : null}
-      </div>
-      
-      <div className="table-node__footer mt-2 pt-1 text-xs border-t border-gray-200">
-        <div className="flex justify-between items-center">
-          <span>Rows: {table.row_count.toLocaleString()}</span>
-          <span>Size: {table.size_in_mb} MB</span>
+          
+          {table.columns && table.columns.length > 0 && (
+            <div className="mt-2 text-xs">
+              <div className="font-semibold mb-1">Columns:</div>
+              <ul className="space-y-0.5 max-h-32 overflow-y-auto pr-1">
+                {table.columns.slice(0, 3).map((col, index) => (
+                  <li key={index} className="flex justify-between">
+                    <span className="font-mono">{col.name}</span>
+                    <span className="text-gray-500 font-mono">{col.type}</span>
+                  </li>
+                ))}
+                {table.columns.length > 3 && (
+                  <li className="text-gray-500 italic text-center">
+                    + {table.columns.length - 3} more
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+          
+          <div className="table-node__footer mt-2 pt-1 text-xs border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <span>Rows: {table.row_count.toLocaleString()}</span>
+              <span>Size: {table.size_in_mb} MB</span>
+            </div>
+            
+            <div className="mt-2 flex justify-between gap-1 text-xs">
+              <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Investigate Queries">
+                <ExternalLink size={10} /> Queries
+              </a>
+              <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Edit Schema">
+                <ExternalLink size={10} /> Schema
+              </a>
+            </div>
+          </div>
         </div>
-        
-        <div className="mt-2 flex justify-between gap-1 text-xs">
-          <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Investigate Queries">
-            <ExternalLink size={10} /> Queries
-          </a>
-          <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Storage Stats">
-            <ExternalLink size={10} /> Storage
-          </a>
-          <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Edit Schema">
-            <ExternalLink size={10} /> Schema
-          </a>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

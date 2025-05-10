@@ -15,17 +15,20 @@ import {
   MarkerType,
   NodeTypes
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css'; // Fixed import path for styles
+import '@xyflow/react/dist/style.css';
 
 import { Table, ArchDetails, FilterOptions } from '../types/tables';
 import TableNode from './TableNode';
 import DetailsSidebar from './DetailsSidebar';
 import TableSearch from './TableSearch';
 import TableFilterBar from './TableFilterBar';
+import CreateTableDialog from './CreateTableDialog';
+import { v4 as uuidv4 } from 'uuid';
 
 interface TablesGraphProps {
   tables: Table[];
   arches: ArchDetails[];
+  onAddTable?: (newTable: Table, newArch?: ArchDetails) => void;
 }
 
 // Custom node types
@@ -33,7 +36,7 @@ const nodeTypes: NodeTypes = {
   tableNode: TableNode,
 };
 
-const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
+const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
@@ -142,71 +145,123 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
       .map(arch => arch.id);
   }, [filteredTables, arches, filters]);
 
-  // Position trees with better separation
+  // Position trees with better separation between data factories
   const positionTables = useCallback((tablesToPosition: Table[]) => {
-    // Group tables by datafactory and project
-    const treeGroups: Record<string, Table[]> = {};
+    // Group tables by datafactory
+    const dataFactoryGroups: Record<string, Table[]> = {};
     
     tablesToPosition.forEach(table => {
-      const groupKey = `${table.datafactory_id}_${table.project_id}`;
-      if (!treeGroups[groupKey]) {
-        treeGroups[groupKey] = [];
+      const groupKey = table.datafactory_id;
+      if (!dataFactoryGroups[groupKey]) {
+        dataFactoryGroups[groupKey] = [];
       }
-      treeGroups[groupKey].push(table);
+      dataFactoryGroups[groupKey].push(table);
     });
     
-    const groupedTables = { ...tablesToPosition };
-    let currentX = 50;
-    const yStart = 50;
-    const horizontalGap = 300;
-    const verticalGap = 150;
-    const columnWidth = 250;
+    const positionedTables = [...tablesToPosition];
+    let factoryY = 50;
+    const verticalGapBetweenFactories = 400;
     
-    // Position each tree group with proper spacing
-    Object.entries(treeGroups).forEach(([groupKey, tables]) => {
-      // Find the raw/source tables (tables that are not targets in any arch)
-      const targetIds = new Set(arches.map(arch => arch.target));
-      const sourceTables = tables.filter(table => !targetIds.has(table.id) || arches.every(arch => 
-        arch.target === table.id && !tables.some(t => t.id === arch.source)
-      ));
+    // Position each data factory group
+    Object.entries(dataFactoryGroups).forEach(([factoryId, factoryTables]) => {
+      // Further group by project within each factory
+      const projectGroups: Record<string, Table[]> = {};
       
-      // Position each source table and its downstream tables
-      sourceTables.forEach(sourceTable => {
-        // For each source table, start a new column
-        let x = currentX;
-        let y = yStart;
-        
-        // Position the source table
-        sourceTable.position = { x, y };
-        y += verticalGap;
-        
-        // Function to position downstream tables
-        const positionDownstream = (tableId: string, level: number, branchY: number) => {
-          const downstreamArches = arches.filter(arch => arch.source === tableId);
-          
-          downstreamArches.forEach((arch, index) => {
-            const targetTable = tables.find(t => t.id === arch.target);
-            if (targetTable) {
-              targetTable.position = { 
-                x: x + (level * columnWidth), 
-                y: branchY + (index * verticalGap)
-              };
-              
-              // Position further downstream tables
-              positionDownstream(targetTable.id, level + 1, branchY + (index * verticalGap));
-            }
-          });
-        };
-        
-        // Position all downstream tables for this source
-        positionDownstream(sourceTable.id, 1, y);
-        
-        // Move to the next tree with a gap
-        currentX += horizontalGap * 2;
+      factoryTables.forEach(table => {
+        const projectKey = table.project_id;
+        if (!projectGroups[projectKey]) {
+          projectGroups[projectKey] = [];
+        }
+        projectGroups[projectKey].push(table);
       });
+      
+      let projectX = 50;
+      const horizontalGapBetweenProjects = 600;
+      
+      // Position each project group within this factory
+      Object.entries(projectGroups).forEach(([projectId, projectTables]) => {
+        // Find source tables (tables that are not targets in any arch)
+        const targetIds = new Set(arches.filter(a => 
+          projectTables.some(t => t.id === a.source)
+        ).map(a => a.target));
+        
+        const sourceTables = projectTables.filter(table => 
+          !targetIds.has(table.id) || 
+          !arches.some(a => a.target === table.id && projectTables.some(t => t.id === a.source))
+        );
+        
+        if (sourceTables.length === 0 && projectTables.length > 0) {
+          // If no source tables found but we have tables, use the first one
+          sourceTables.push(projectTables[0]);
+        }
+        
+        // Position trees starting from source tables
+        let treeX = projectX;
+        const horizontalGapBetweenTrees = 300;
+        
+        sourceTables.forEach(sourceTable => {
+          // Start a new tree at this X position
+          const currentX = treeX;
+          let currentY = factoryY;
+          
+          // Position the source table
+          const sourceTableIndex = positionedTables.findIndex(t => t.id === sourceTable.id);
+          if (sourceTableIndex !== -1) {
+            positionedTables[sourceTableIndex].position = { x: currentX, y: currentY };
+          }
+          
+          // Track positioned tables to avoid duplicates
+          const positionedIds = new Set<string>([sourceTable.id]);
+          
+          // Function to recursively position downstream tables
+          const positionDownstreamTables = (tableId: string, level: number, branchY: number) => {
+            const downstreamArches = arches.filter(arch => 
+              arch.source === tableId && 
+              projectTables.some(t => t.id === arch.target)
+            );
+            
+            const verticalGap = 150;
+            let yOffset = 0;
+            
+            downstreamArches.forEach((arch, index) => {
+              const targetTable = projectTables.find(t => t.id === arch.target);
+              if (targetTable && !positionedIds.has(targetTable.id)) {
+                positionedIds.add(targetTable.id);
+                
+                const targetY = branchY + yOffset;
+                const targetX = currentX + (level * 200);
+                
+                const targetTableIndex = positionedTables.findIndex(t => t.id === targetTable.id);
+                if (targetTableIndex !== -1) {
+                  positionedTables[targetTableIndex].position = { x: targetX, y: targetY };
+                }
+                
+                // Position further downstream tables
+                positionDownstreamTables(targetTable.id, level + 1, targetY);
+                
+                yOffset += verticalGap;
+              }
+            });
+            
+            return Math.max(branchY + yOffset, branchY + 100);
+          };
+          
+          // Position all downstream tables in this tree
+          const treeHeight = positionDownstreamTables(sourceTable.id, 1, currentY) - factoryY;
+          
+          // Move to next tree position
+          treeX += horizontalGapBetweenTrees;
+        });
+        
+        // Move to next project position
+        projectX = treeX + horizontalGapBetweenProjects - horizontalGapBetweenTrees;
+      });
+      
+      // Move to next factory position (vertical)
+      factoryY += verticalGapBetweenFactories;
     });
     
-    return tablesToPosition;
+    return positionedTables;
   }, [arches]);
 
   // Convert tables to nodes
@@ -219,7 +274,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
       type: 'tableNode',
       data: { table, isFocused: focusedTable === table.id },
       position: table.position || { x: 0, y: 0 },
-      draggable: !focusedTable, // Only allow dragging when not focused
+      draggable: false, // Make nodes non-draggable
     }));
 
     // Convert filtered arches to edges
@@ -236,11 +291,11 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
           style: { stroke: archColor, strokeWidth: 2 },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            width: 25,  // Increased marker width
-            height: 25, // Increased marker height
+            width: 30,  // Increased marker width
+            height: 30, // Increased marker height
             color: archColor,
           },
-          data: { ...arch }, // Fixed: Now spread arch data into a new object
+          data: { ...arch },
         };
       });
 
@@ -347,19 +402,58 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
     setFocusedTable(null);
   };
 
+  // Handle table creation
+  const handleCreateTable = (tableData: Partial<Table>, sourceTableId?: string) => {
+    if (!onAddTable) return;
+
+    const newTable: Table = {
+      id: uuidv4(),
+      source_id: tableData.source_id || 'New Table',
+      datafactory_id: tableData.datafactory_id || dataFactories[0],
+      project_id: tableData.project_id || projects[0],
+      row_count: tableData.row_count || 0,
+      size_in_mb: tableData.size_in_mb || 0,
+      columns: []
+    };
+
+    // If source table is specified, create an arch
+    let newArch: ArchDetails | undefined = undefined;
+    if (sourceTableId) {
+      newArch = {
+        id: uuidv4(),
+        source: sourceTableId,
+        target: newTable.id,
+        insertion_type: 'insert_stage_0',
+        events: [{
+          timestamp: new Date(),
+          rows_affected: 0,
+          duration_ms: 0
+        }]
+      };
+    }
+
+    onAddTable(newTable, newArch);
+  };
+
   return (
     <div className="flex h-screen w-full">
       <div className="flex-grow relative">
-        <div className="absolute top-4 left-4 right-4 z-10">
-          <TableFilterBar 
+        <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-center gap-4">
+          <div className="flex items-center gap-4">
+            <TableFilterBar 
+              dataFactories={dataFactories}
+              projects={projects}
+              onFilterChange={handleFilterChange}
+            />
+            <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
+          </div>
+          
+          <CreateTableDialog 
+            tables={tables}
             dataFactories={dataFactories}
             projects={projects}
-            onFilterChange={handleFilterChange}
+            onTableCreate={handleCreateTable}
           />
-        </div>
-        
-        <div className="absolute bottom-4 left-4 z-10">
-          <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
         </div>
         
         {focusedTable && (
@@ -385,6 +479,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches }) => {
           fitViewOptions={{
             padding: 0.2,
           }}
+          minZoom={0.2}
+          maxZoom={2}
         >
           <Background color="#aaa" gap={16} />
           <Controls />
