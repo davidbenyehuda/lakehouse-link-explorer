@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   ReactFlow, 
@@ -45,6 +44,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
   const [selectedArch, setSelectedArch] = useState<ArchDetails | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({});
   const [focusedTable, setFocusedTable] = useState<string | null>(null);
+  const [sourceNode, setSourceNode] = useState<string | null>(null);
+  const [targetNode, setTargetNode] = useState<string | null>(null);
   
   const reactFlowInstance = useReactFlow();
 
@@ -336,21 +337,27 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     const table = tables.find((t) => t.id === node.id);
     if (table) {
-      setSelectedTable(table);
-      setSelectedArch(null);
-      
-      // Double click detection
-      const clickTimestamp = new Date().getTime();
-      if (selectedTable?.id === table.id) {
-        const lastClick = (table as any).lastClickTime || 0;
-        if (clickTimestamp - lastClick < 300) { // 300ms threshold for double-click
-          // Toggle focus mode
-          setFocusedTable(focusedTable === table.id ? null : table.id);
+      if (sourceNode && sourceNode !== node.id) {
+        // If source is already selected and we're selecting a different node, this is the target
+        setTargetNode(node.id);
+      } else {
+        // Otherwise update selected table and reset source/target if it's a different node
+        setSelectedTable(table);
+        setSelectedArch(null);
+        
+        // Double click detection
+        const clickTimestamp = new Date().getTime();
+        if (selectedTable?.id === table.id) {
+          const lastClick = (table as any).lastClickTime || 0;
+          if (clickTimestamp - lastClick < 300) { // 300ms threshold for double-click
+            // Toggle focus mode
+            setFocusedTable(focusedTable === table.id ? null : table.id);
+          }
         }
+        (table as any).lastClickTime = clickTimestamp;
       }
-      (table as any).lastClickTime = clickTimestamp;
     }
-  }, [tables, selectedTable, focusedTable]);
+  }, [tables, selectedTable, focusedTable, sourceNode]);
   
   // Handle filter changes
   const handleFilterChange = useCallback((newFilters: FilterOptions) => {
@@ -403,6 +410,33 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
   const handleResetFocus = () => {
     setFocusedTable(null);
   };
+
+  // Set source node for connection
+  const handleSetSourceNode = () => {
+    if (selectedTable) {
+      setSourceNode(selectedTable.id);
+      toast({
+        title: "Source Selected",
+        description: "Now select a target table to create a connection."
+      });
+    }
+  };
+
+  // Clear connection selection
+  const handleClearConnectionSelection = () => {
+    setSourceNode(null);
+    setTargetNode(null);
+  };
+
+  // Open connection dialog when both source and target are selected
+  useEffect(() => {
+    if (sourceNode && targetNode) {
+      // Here you would trigger the create connection dialog
+      // For now, we'll just reset the selection
+      setSourceNode(null);
+      setTargetNode(null);
+    }
+  }, [sourceNode, targetNode]);
 
   // Handle table creation
   const handleCreateTable = (tableData: Partial<Table>, sourceTableId?: string, createAsSelect?: boolean) => {
@@ -465,36 +499,29 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
   };
 
   return (
-    <div className="flex h-screen w-full">
-      <div className="flex-grow relative">
-        <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-center gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <TableFilterBar 
-              dataFactories={dataFactories}
-              projects={projects}
-              onFilterChange={handleFilterChange}
-            />
-            <div className="flex-1">
+    <div className="flex h-screen w-full flex-col">
+      {/* Top Search Bar */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-white shadow-md p-4">
+        <div className="container mx-auto">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex-grow md:flex-grow-0 md:w-1/4">
+              <TableFilterBar 
+                dataFactories={dataFactories}
+                projects={projects}
+                onFilterChange={handleFilterChange}
+              />
+            </div>
+            <div className="flex-grow">
               <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
             </div>
           </div>
-          
-          <div className="flex gap-2">
-            <CreateTableDialog 
-              tables={tables}
-              dataFactories={dataFactories}
-              projects={projects}
-              onTableCreate={handleCreateTable}
-            />
-            <CreateArchDialog
-              tables={tables}
-              onArchCreate={handleCreateArch}
-            />
-          </div>
         </div>
-        
+      </div>
+      
+      {/* Main Flow Area */}
+      <div className="flex-grow pt-24 pb-16"> {/* Add padding to account for top and bottom bars */}
         {focusedTable && (
-          <div className="absolute top-20 left-4 z-10">
+          <div className="absolute top-24 left-4 z-10">
             <button 
               onClick={handleResetFocus}
               className="px-3 py-1 bg-blue-500 text-white rounded flex items-center gap-1"
@@ -525,6 +552,57 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
         </ReactFlow>
       </div>
       
+      {/* Bottom Action Bar */}
+      <div className="absolute bottom-0 left-0 right-0 bg-white z-10 p-4 border-t shadow-md">
+        <div className="container mx-auto flex justify-between items-center">
+          <div>
+            {selectedTable && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Selected: {selectedTable.source_id}</span>
+                <button 
+                  onClick={handleSetSourceNode}
+                  className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded"
+                >
+                  Set as Source
+                </button>
+                {sourceNode && (
+                  <button 
+                    onClick={handleClearConnectionSelection}
+                    className="px-2 py-1 text-sm bg-gray-100 text-gray-800 rounded"
+                  >
+                    Clear Selection
+                  </button>
+                )}
+              </div>
+            )}
+            {sourceNode && !selectedTable && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Source selected. Select a target table.</span>
+                <button 
+                  onClick={handleClearConnectionSelection}
+                  className="px-2 py-1 text-sm bg-gray-100 text-gray-800 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <CreateTableDialog 
+              tables={tables}
+              dataFactories={dataFactories}
+              projects={projects}
+              onTableCreate={handleCreateTable}
+            />
+            <CreateArchDialog
+              tables={tables}
+              onArchCreate={handleCreateArch}
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Sidebar */}
       {(selectedTable || selectedArch) && (
         <DetailsSidebar 
           selectedTable={selectedTable} 

@@ -95,21 +95,24 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen w-full bg-graph-background">
-      <div className="absolute top-0 left-0 w-full bg-white z-10 p-4 border-b flex items-center justify-between">
-        <div className="flex items-center">
-          <h1 className="text-xl font-bold text-graph-text">Tables-Tree</h1>
-          <p className="ml-4 text-gray-600">Visualizing table relationships in a managed lakehouse platform</p>
+    <div className="h-screen w-full bg-graph-background flex flex-col">
+      <header className="bg-white z-10 p-4 border-b shadow-sm">
+        <div className="container mx-auto">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-graph-text">Tables-Tree</h1>
+              <ImportExportButtons 
+                tables={tables} 
+                arches={arches} 
+                onImport={handleImport} 
+              />
+            </div>
+            <p className="text-gray-600">Visualizing table relationships in a managed lakehouse platform</p>
+          </div>
         </div>
-        
-        <ImportExportButtons 
-          tables={tables} 
-          arches={arches} 
-          onImport={handleImport} 
-        />
-      </div>
+      </header>
       
-      <div className="pt-16 h-full">
+      <div className="flex-grow relative">
         <ReactFlowProvider>
           <TablesGraph 
             tables={tables} 

@@ -54,21 +54,21 @@ const TableSearch: React.FC<TableSearchProps> = ({ tables, onTableSelect }) => {
 
   return (
     <div className="relative w-full">
-      <div className="flex items-center gap-2 w-full">
-        <Input
-          value={searchTerm}
-          onChange={handleInputChange}
-          placeholder="Search tables..."
-          className="flex-1"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleSearch();
-            }
-          }}
-        />
-        <Button variant="ghost" size="icon" onClick={handleSearch}>
-          <Search className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            value={searchTerm}
+            onChange={handleInputChange}
+            placeholder="Search tables..."
+            className="pl-9 pr-3"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
+          />
+        </div>
       </div>
 
       {isSearching && (
