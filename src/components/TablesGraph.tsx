@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   ReactFlow, 
@@ -54,7 +53,6 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
   const [focusedTable, setFocusedTable] = useState<string | null>(null);
   const [sourceNode, setSourceNode] = useState<string | null>(null);
   const [targetNode, setTargetNode] = useState<string | null>(null);
-  const [showFiltersExpanded, setShowFiltersExpanded] = useState(false);
   
   const { toast } = useToast();
   
@@ -278,7 +276,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
     return positionedTables;
   }, [arches]);
 
-  // Convert tables to nodes
+  // Initialize and update the graph
   const initializeGraph = useCallback(() => {
     // Position the tables first
     const positionedTables = positionTables([...filteredTables]);
@@ -302,11 +300,11 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
           source: arch.source,
           target: arch.target,
           animated: false,
-          style: { stroke: archColor, strokeWidth: 2 }, // Reduced stroke width from 3 to 2
+          style: { stroke: archColor, strokeWidth: 2 }, // Reduced stroke width
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            width: 20,  // Reduced marker width from 35 to 20
-            height: 20, // Reduced marker height from 35 to 20
+            width: 15,  // Further reduced marker width
+            height: 15, // Further reduced marker height
             color: archColor,
           },
           data: { ...arch },
@@ -510,37 +508,31 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
   };
 
   return (
-    <div className="flex h-screen w-full flex-col">
-      {/* Top Search & Filters Bar */}
-      <div className={`absolute top-0 left-0 right-0 z-10 bg-white shadow-md transition-all duration-300 ${showFiltersExpanded ? 'h-auto' : 'h-16'}`}>
+    <div className="flex h-full w-full flex-col">
+      {/* Top Search & Filters Bar - Always expanded */}
+      <div className="sticky top-0 z-10 bg-white shadow-md border-b">
         <div className="container mx-auto p-2">
-          <div className="flex items-center gap-2">
-            <div className="flex-grow-0 w-1/4">
-              <TableFilterBar 
-                dataFactories={dataFactories}
-                projects={projects}
-                onFilterChange={handleFilterChange}
-              />
-            </div>
-            <div className="flex-grow w-1/2">
-              <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
-            </div>
-            <div className="flex-grow-0 ml-auto">
-              <button
-                onClick={() => setShowFiltersExpanded(!showFiltersExpanded)}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                {showFiltersExpanded ? 'Collapse ▲' : 'Expand ▼'}
-              </button>
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-5 gap-2">
+              <div className="col-span-4">
+                <TableFilterBar 
+                  dataFactories={dataFactories}
+                  projects={projects}
+                  onFilterChange={handleFilterChange}
+                />
+              </div>
+              <div className="col-span-1">
+                <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
+              </div>
             </div>
           </div>
         </div>
       </div>
       
       {/* Main Content Area with Resizable Panels */}
-      <div className="flex-grow pt-16 pb-16">
+      <div className="flex-grow relative">
         {focusedTable && (
-          <div className="absolute top-16 left-4 z-10">
+          <div className="absolute top-2 left-4 z-10">
             <button 
               onClick={handleResetFocus}
               className="px-3 py-1 bg-blue-500 text-white rounded flex items-center gap-1"
@@ -554,8 +546,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
           {/* Left Side Panel for Details */}
           {(selectedTable || selectedArch) && (
             <>
-              <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-                <div className="h-full overflow-auto">
+              <ResizablePanel defaultSize={30} minSize={25} maxSize={40}>
+                <div className="h-full overflow-auto bg-white border-r">
                   <DetailsSidebar
                     selectedTable={selectedTable}
                     selectedArch={selectedArch}
@@ -563,12 +555,12 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
                   />
                 </div>
               </ResizablePanel>
-              <ResizableHandle />
+              <ResizableHandle withHandle />
             </>
           )}
           
           {/* Right Side Panel for Graph */}
-          <ResizablePanel defaultSize={selectedTable || selectedArch ? 75 : 100}>
+          <ResizablePanel defaultSize={selectedTable || selectedArch ? 70 : 100}>
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -598,9 +590,9 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
         </ResizablePanelGroup>
       </div>
       
-      {/* Bottom Action Bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white z-10 p-2 border-t shadow-md h-16">
-        <div className="container mx-auto flex justify-between items-center h-full">
+      {/* Bottom Action Bar - Fixed at bottom */}
+      <div className="sticky bottom-0 bg-white z-10 p-2 border-t shadow-md">
+        <div className="container mx-auto flex justify-between items-center">
           <div>
             {selectedTable && (
               <div className="flex items-center gap-2">

@@ -55,7 +55,7 @@ const Index = () => {
     loadData();
   }, [toast]);
 
-  // Handle adding a new table - modified to match the expected signature
+  // Handle adding a new table
   const handleAddTable = useCallback((newTable: Table, newArch?: ArchDetails) => {
     setTables(prev => [...prev, newTable]);
     
@@ -85,7 +85,7 @@ const Index = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-graph-background">
+      <div className="h-screen flex items-center justify-center bg-graph-background">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Loading Tables-Tree</h2>
           <p className="text-gray-600">Preparing visualization...</p>
@@ -98,7 +98,7 @@ const Index = () => {
     <div className="h-screen w-full bg-graph-background flex flex-col">
       <header className="bg-white z-10 p-4 border-b shadow-sm">
         <div className="container mx-auto">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold text-graph-text">Tables-Tree</h1>
               <ImportExportButtons 
@@ -112,7 +112,7 @@ const Index = () => {
         </div>
       </header>
       
-      <div className="flex-grow relative">
+      <div className="flex-grow relative overflow-hidden">
         <ReactFlowProvider>
           <TablesGraph 
             tables={tables} 

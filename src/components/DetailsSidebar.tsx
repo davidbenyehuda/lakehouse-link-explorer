@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table as TableType, ArchDetails } from "../types/tables";
-import { ExternalLink, RefreshCw, ArrowUpDown as SyncIcon, Database } from 'lucide-react';
+import { ExternalLink, RefreshCw, ArrowUpDown as SyncIcon, Database, X } from 'lucide-react';
 
 interface DetailsSidebarProps {
   selectedTable?: TableType | null;
@@ -28,6 +28,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   const [refreshStartTime, setRefreshStartTime] = useState("");
   const [syncStartTime, setSyncStartTime] = useState("");
   const [syncEndTime, setSyncEndTime] = useState("");
+  const [showAllColumns, setShowAllColumns] = useState(false);
 
   if (!selectedTable && !selectedArch) {
     return null;
@@ -59,50 +60,116 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
     if (!selectedTable) return null;
 
     return (
-      <Card className="border-0 shadow-none">
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="flex items-center justify-between">
-            <span>Table: {selectedTable.source_id}</span>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <span className="sr-only">Close</span>
-              ✕
-            </button>
-          </CardTitle>
-          <CardDescription>
-            Client: {selectedTable.datafactory_id} • Project: {selectedTable.project_id}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4">
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Table Information</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="font-medium">Source ID:</div>
-                <div>{selectedTable.source_id}</div>
-                <div className="font-medium">Row Count:</div>
-                <div>{selectedTable.row_count.toLocaleString()}</div>
-                <div className="font-medium">Size:</div>
-                <div>{selectedTable.size_in_mb} MB</div>
-                <div className="font-medium">Last Accessed:</div>
-                <div>{selectedTable.last_accessed ? formatDate(selectedTable.last_accessed) : 'N/A'}</div>
-                <div className="font-medium">Query Count:</div>
-                <div>{selectedTable.query_count || 'N/A'}</div>
-              </div>
-            </div>
+      <div className="h-full flex flex-col">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">{selectedTable.source_id}</h2>
+            <p className="text-sm text-gray-500">
+              Client: {selectedTable.datafactory_id} • Project: {selectedTable.project_id}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={18} />
+          </button>
+        </div>
 
-            <Separator />
+        <Tabs defaultValue="overview" className="flex-grow flex flex-col">
+          <TabsList className="p-2 justify-start border-b">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="schema">Schema</TabsTrigger>
+            <TabsTrigger value="actions">Actions</TabsTrigger>
+          </TabsList>
+          
+          <div className="flex-grow overflow-y-auto">
+            <TabsContent value="overview" className="p-4 space-y-4 h-full">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Table Information</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 p-3 rounded-md">
+                  <div className="font-medium">Source ID:</div>
+                  <div>{selectedTable.source_id}</div>
+                  <div className="font-medium">Row Count:</div>
+                  <div>{selectedTable.row_count.toLocaleString()}</div>
+                  <div className="font-medium">Size:</div>
+                  <div>{selectedTable.size_in_mb} MB</div>
+                  <div className="font-medium">Last Accessed:</div>
+                  <div>{selectedTable.last_accessed ? formatDate(selectedTable.last_accessed) : 'N/A'}</div>
+                  <div className="font-medium">Query Count:</div>
+                  <div>{selectedTable.query_count || 'N/A'}</div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium mb-2">Column Summary</h4>
+                <div className="text-sm bg-gray-50 p-3 rounded-md">
+                  <p>Total Columns: {selectedTable.columns?.length || 0}</p>
+                  {selectedTable.columns && selectedTable.columns.length > 0 && (
+                    <div className="mt-2">
+                      <h5 className="text-xs font-medium mb-1">First 3 columns:</h5>
+                      <div className="space-y-1">
+                        {selectedTable.columns.slice(0, 3).map((col, idx) => (
+                          <div key={idx} className="flex justify-between items-center">
+                            <span className="font-mono">{col.name}</span>
+                            <span className="text-gray-500 font-mono">{col.type}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
             
-            <div>
-              <h4 className="text-sm font-medium mb-2">Actions</h4>
-              <div className="flex flex-wrap gap-2">
+            <TabsContent value="schema" className="p-4 h-full overflow-y-auto">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-sm font-medium">Table Schema</h4>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowAllColumns(!showAllColumns)}
+                >
+                  {showAllColumns ? 'Show Less' : 'Show All'}
+                </Button>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(showAllColumns ? selectedTable.columns : selectedTable.columns?.slice(0, 5))?.map((col, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="w-10">{index + 1}</TableCell>
+                        <TableCell className="font-mono">{col.name}</TableCell>
+                        <TableCell className="font-mono text-gray-600">{col.type}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {!showAllColumns && selectedTable.columns && selectedTable.columns.length > 5 && (
+                  <div className="text-center p-2 text-sm text-gray-500">
+                    + {selectedTable.columns.length - 5} more columns
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="actions" className="p-4 space-y-4 h-full">
+              <div className="grid grid-cols-2 gap-3">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={handleRecreate}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 h-auto py-2"
                 >
                   <Database size={16} />
-                  Recreate/Migrate
+                  <div className="flex flex-col items-start">
+                    <span>Recreate/Migrate</span>
+                    <span className="text-xs text-gray-500">Reset table structure</span>
+                  </div>
                 </Button>
                 
                 <Dialog open={showRefreshDialog} onOpenChange={setShowRefreshDialog}>
@@ -110,10 +177,13 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 h-auto py-2"
                     >
                       <RefreshCw size={16} />
-                      Refresh
+                      <div className="flex flex-col items-start">
+                        <span>Refresh</span>
+                        <span className="text-xs text-gray-500">Update table data</span>
+                      </div>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -143,10 +213,13 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 h-auto py-2"
                     >
                       <SyncIcon size={16} />
-                      Sync
+                      <div className="flex flex-col items-start">
+                        <span>Sync</span>
+                        <span className="text-xs text-gray-500">Time-based synchronization</span>
+                      </div>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -179,50 +252,27 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+
+                <Button variant="outline" size="sm" className="flex items-center gap-1 h-auto py-2">
+                  <ExternalLink size={16} />
+                  <div className="flex flex-col items-start">
+                    <span>Query Stats</span>
+                    <span className="text-xs text-gray-500">View query performance</span>
+                  </div>
+                </Button>
+
+                <Button variant="outline" size="sm" className="flex items-center gap-1 h-auto py-2">
+                  <ExternalLink size={16} />
+                  <div className="flex flex-col items-start">
+                    <span>Storage Stats</span>
+                    <span className="text-xs text-gray-500">View storage usage</span>
+                  </div>
+                </Button>
               </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex flex-wrap gap-2">
-              <a href="#" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
-                <ExternalLink size={14} />
-                Investigate Query Stats
-              </a>
-              <a href="#" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
-                <ExternalLink size={14} />
-                Storage Statistics
-              </a>
-              <a href="#" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
-                <ExternalLink size={14} />
-                Modify Schema
-              </a>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h4 className="text-sm font-medium mb-2">Columns</h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedTable.columns?.map((col, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-mono">{col.name}</TableCell>
-                      <TableCell className="font-mono text-gray-600">{col.type}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            </TabsContent>
           </div>
-        </CardContent>
-      </Card>
+        </Tabs>
+      </div>
     );
   };
 
@@ -268,27 +318,28 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
     const statistics = getStatistics();
 
     return (
-      <Card className="border-0 shadow-none">
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="flex items-center justify-between">
-            <span>Data Transfer</span>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <span className="sr-only">Close</span>
-              ✕
-            </button>
-          </CardTitle>
-          <CardDescription>
-            From {selectedArch.source} to {selectedArch.target}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4">
-          <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="sql">SQL</TabsTrigger>
-              <TabsTrigger value="events">Events</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" className="space-y-4 mt-4">
+      <div className="h-full flex flex-col">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Data Transfer</h2>
+            <p className="text-sm text-gray-500">
+              From <span className="font-medium">{selectedArch.source}</span> to <span className="font-medium">{selectedArch.target}</span>
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={18} />
+          </button>
+        </div>
+
+        <Tabs defaultValue="overview" className="flex-grow flex flex-col">
+          <TabsList className="p-2 justify-start border-b">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="sql">SQL</TabsTrigger>
+            <TabsTrigger value="events">Events</TabsTrigger>
+          </TabsList>
+          
+          <div className="flex-grow overflow-y-auto">
+            <TabsContent value="overview" className="p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Insertion Type:</span>
                 {getInsertionTypeBadge(selectedArch.insertion_type)}
@@ -296,7 +347,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
 
               <div>
                 <h4 className="text-sm font-medium mb-2">Statistics</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 p-3 rounded-md">
                   <div className="font-medium">Batches:</div>
                   <div>{statistics.count}</div>
                   <div className="font-medium">Rows:</div>
@@ -311,54 +362,45 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
               </div>
 
               {selectedArch.insertion_type === 'insert_upsert' && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Upsert Configuration</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="font-medium">Primary Key:</div>
-                      <div className="font-mono">{selectedArch.primary_key || 'N/A'}</div>
-                      <div className="font-medium">Order By:</div>
-                      <div className="font-mono">{selectedArch.order_by || 'N/A'}</div>
-                    </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Upsert Configuration</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 p-3 rounded-md">
+                    <div className="font-medium">Primary Key:</div>
+                    <div className="font-mono">{selectedArch.primary_key || 'N/A'}</div>
+                    <div className="font-medium">Order By:</div>
+                    <div className="font-mono">{selectedArch.order_by || 'N/A'}</div>
                   </div>
-                </>
+                </div>
               )}
 
               {selectedArch.insertion_type === 'insert_custom' && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Custom Merge Statement</h4>
-                    <div className="bg-gray-100 p-2 rounded font-mono text-xs overflow-x-auto">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Custom Merge Statement</h4>
+                  <div className="bg-gray-50 p-3 rounded-md">
+                    <pre className="font-mono text-xs overflow-x-auto">
                       {selectedArch.merge_statement || 'No merge statement provided'}
-                    </div>
+                    </pre>
                   </div>
-                </>
+                </div>
               )}
-
-              <div className="mt-4">
-                <a href="#" className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center gap-1">
-                  <ExternalLink size={14} />
-                  Investigate Insertion Performance
-                </a>
-              </div>
             </TabsContent>
 
-            <TabsContent value="sql" className="mt-4">
-              <div className="bg-gray-100 p-3 rounded-md">
+            <TabsContent value="sql" className="p-4">
+              <h4 className="text-sm font-medium mb-2">SQL Query</h4>
+              <div className="bg-gray-50 p-3 rounded-md">
                 <pre className="text-xs font-mono whitespace-pre-wrap">
                   {selectedArch.sql_query || 'No SQL query available'}
                 </pre>
               </div>
             </TabsContent>
 
-            <TabsContent value="events" className="mt-4">
+            <TabsContent value="events" className="p-4">
+              <h4 className="text-sm font-medium mb-2">Event History</h4>
               <div className="space-y-3">
                 {selectedArch.events.map((event, index) => (
                   <div key={index} className="bg-gray-50 p-3 rounded-md">
                     <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">Event</span>
+                      <span className="text-sm font-medium">Event #{index + 1}</span>
                       <span className="text-xs text-gray-500">
                         {formatDate(event.timestamp)}
                       </span>
@@ -374,14 +416,14 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 ))}
               </div>
             </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+          </div>
+        </Tabs>
+      </div>
     );
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-white animate-slide-in-right">
+    <div className="h-full">
       {selectedTable ? renderTableDetails() : null}
       {selectedArch ? renderArchDetails() : null}
     </div>

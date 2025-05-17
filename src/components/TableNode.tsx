@@ -29,8 +29,18 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
       className={`table-node bg-white p-2 border rounded-lg shadow-md w-[180px] cursor-grab active:cursor-grabbing ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       style={{ backgroundColor: getBackgroundColor() }}
     >
-      <Handle type="target" position={Position.Left} id="left" />
-      <Handle type="source" position={Position.Right} id="right" />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="left"
+        className="!w-2 !h-2 !min-w-2 !min-h-2" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="right"
+        className="!w-2 !h-2 !min-w-2 !min-h-2" 
+      />
       
       <div className="table-node__header text-graph-text font-semibold text-sm flex justify-between items-center">
         <div className="truncate">{table.source_id}</div>
