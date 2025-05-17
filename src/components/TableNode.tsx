@@ -26,7 +26,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
 
   return (
     <div 
-      className={`table-node bg-white p-2 border rounded-lg shadow-md w-[180px] ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
+      className={`table-node bg-white p-2 border rounded-lg shadow-md w-[180px] cursor-grab active:cursor-grabbing ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
       style={{ backgroundColor: getBackgroundColor() }}
     >
       <Handle type="target" position={Position.Left} id="left" />
@@ -35,7 +35,10 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
       <div className="table-node__header text-graph-text font-semibold text-sm flex justify-between items-center">
         <div className="truncate">{table.source_id}</div>
         <button 
-          onClick={() => setIsExpanded(!isExpanded)} 
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent node selection when toggling expand
+            setIsExpanded(!isExpanded);
+          }} 
           className="text-gray-500 hover:text-gray-700 ml-2"
         >
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -85,10 +88,20 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
             </div>
             
             <div className="mt-2 flex justify-between gap-1 text-xs">
-              <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Investigate Queries">
+              <a 
+                href="#" 
+                onClick={(e) => e.stopPropagation()}
+                className="text-blue-600 hover:underline flex items-center gap-0.5" 
+                title="Investigate Queries"
+              >
                 <ExternalLink size={10} /> Queries
               </a>
-              <a href="#" className="text-blue-600 hover:underline flex items-center gap-0.5" title="Edit Schema">
+              <a 
+                href="#" 
+                onClick={(e) => e.stopPropagation()}
+                className="text-blue-600 hover:underline flex items-center gap-0.5" 
+                title="Edit Schema"
+              >
                 <ExternalLink size={10} /> Schema
               </a>
             </div>

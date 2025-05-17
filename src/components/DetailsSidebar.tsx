@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -58,8 +59,8 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
     if (!selectedTable) return null;
 
     return (
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-none">
+        <CardHeader className="px-4 py-3">
           <CardTitle className="flex items-center justify-between">
             <span>Table: {selectedTable.source_id}</span>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -71,7 +72,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
             Client: {selectedTable.datafactory_id} • Project: {selectedTable.project_id}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4">
           <div className="space-y-4">
             <div>
               <h4 className="text-sm font-medium mb-2">Table Information</h4>
@@ -267,8 +268,8 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
     const statistics = getStatistics();
 
     return (
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-none">
+        <CardHeader className="px-4 py-3">
           <CardTitle className="flex items-center justify-between">
             <span>Data Transfer</span>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -280,7 +281,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
             From {selectedArch.source} to {selectedArch.target}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4">
           <Tabs defaultValue="overview">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -380,7 +381,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   };
 
   return (
-    <div className="w-96 border-l border-gray-200 bg-white p-4 h-screen overflow-y-auto animate-fade-in">
+    <div className="h-full overflow-y-auto bg-white animate-slide-in-right">
       {selectedTable ? renderTableDetails() : null}
       {selectedArch ? renderArchDetails() : null}
     </div>
