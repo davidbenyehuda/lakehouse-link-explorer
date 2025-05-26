@@ -1,4 +1,3 @@
-
 import { Table, TableColumn, ArchDetails, ArchEvent } from '../types/tables';
 
 // Helper function to generate random table data
@@ -186,3 +185,97 @@ export const generateMockDataset = () => {
   
   return { tables, arches };
 };
+
+interface Operation {
+  source_table_id: string;  // UUID
+  sink_table_id: string;    // UUID
+  datafactory_id: string;   // UUID
+  operation_type: 'insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom' | 'wait';
+  is_running: boolean;
+  params_type: 'batches' | 'time_range';
+  status: 'pending' | 'in_progress' | 'failure' | 'hold';
+  created_at: Date;
+  last_updated_at: Date;
+}
+
+interface MetaDataApi {
+  // UUID to Label mappings
+  getLabelMappings(): Promise<{
+    datafactories: { [id: string]: string };
+    projects: { [id: string]: string };
+    sources: { [id: string]: string };
+  }>;
+
+  
+
+
+
+
+
+  // Arch metadata
+  getStage1ArchMetadata(source_table_id: string, sink_table_id: string): Promise<{
+    source_table_id: string;
+    sink_table_id: string;
+    operation_type: 'insert_stage_1';
+    transformations: any;
+  }>;
+
+  getUpsertArchMetadata(source_table_id: string, sink_table_id: string): Promise<{
+    source_table_id: string;
+    sink_table_id: string;
+    operation_type: 'insert_upsert';
+    primary_key: string[];
+    order_by: string[];
+  }>;
+
+  getCustomArchMetadata(source_table_id: string, sink_table_id: string): Promise<{
+    source_table_id: string;
+    sink_table_id: string;
+    operation_type: 'insert_custom';
+    records_query: string;
+    statement_type: 'insert' | 'merge';
+    custom_params: { [key: string]: string };
+  }>;
+
+  // Table metadata
+  getTableMetadata(tableId: string): Promise<{
+    full_name: string;
+    // other metadata
+  }>;
+}
+
+interface OperationsManagerApi {
+  getActiveOperations(): Promise<{
+    operations: Array<{
+      source_table_id: string;
+      sink_table_id: string;
+      datafactory_id: string;
+      operation_type: string;
+      is_running: boolean;
+      status: 'pending' | 'in_progress' | 'failure' | 'hold';
+      params_type: 'batches' | 'time_range';
+    }>;
+  }>;
+}
+
+interface TrinoApi {
+  getEventsAggregation(filters: {
+    source_table_id?: string;
+    sink_table_id?: string;
+    datafactory_id?: string;
+    operation_type?: string;
+    params_type?: string;
+    time_range?: [string, string];  // [start, end]
+  }): Promise<Array<{
+    source_table_id: string;
+    sink_table_id: string;
+    datafactory_id: string;
+    operation_type: string;
+    params_type: string;
+    total_rows: number;
+    total_size: number;
+    batches_count: number;
+    events_count: number;
+  }>>;
+}
+

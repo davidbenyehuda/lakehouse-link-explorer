@@ -31,12 +31,117 @@ import {
   ResizablePanel,
   ResizableHandle
 } from '@/components/ui/resizable';
+import { ServiceFactory } from '../services/ServiceFactory';
 
 interface TablesGraphProps {
   tables: Table[];
   arches: ArchDetails[];
   onAddTable?: (newTable: Table, newArch?: ArchDetails) => void;
   onAddArch?: (newArch: ArchDetails) => void;
+}
+
+interface TableFilter {
+  datafactory_id?: string[];
+  project_id?: string[];
+  source_id?: string[];
+  operation_type?: ('insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom')[];
+  time_range?: [string, string];  // [start, end]
+}
+
+interface TableSearch {
+  searchTerm: string;
+  searchFields: ('source_id' | 'project_id' | 'datafactory_id')[];
+}
+
+interface TrinoApi {
+  getEventsAggregation(filters: TableFilter, search?: TableSearch): Promise<Array<{
+    source_table_id: string;
+    sink_table_id: string;
+    datafactory_id: string;
+    operation_type: string;
+    params_type: string;
+    total_rows: number;
+    total_size: number;
+    batches_count: number;
+    events_count: number;
+  }>>;
+}
+
+class TrinoApiImpl implements TrinoApi {
+  private buildTrinoQuery(filters: TableFilter, search?: TableSearch): string {
+    const conditions: string[] = [];
+    
+    // Add filter conditions
+    if (filters.datafactory_id?.length) {
+      conditions.push(`datafactory_id IN (${filters.datafactory_id.map(id => `'${id}'`).join(',')})`);
+    }
+    
+    if (filters.project_id?.length) {
+      conditions.push(`project_id IN (${filters.project_id.map(id => `'${id}'`).join(',')})`);
+    }
+    
+    if (filters.source_id?.length) {
+      conditions.push(`source_id IN (${filters.source_id.map(id => `'${id}'`).join(',')})`);
+    }
+    
+    if (filters.operation_type?.length) {
+      conditions.push(`operation_type IN (${filters.operation_type.map(type => `'${type}'`).join(',')})`);
+    }
+    
+    if (filters.time_range) {
+      conditions.push(`event_time BETWEEN '${filters.time_range[0]}' AND '${filters.time_range[1]}'`);
+    }
+    
+    // Add search conditions
+    if (search?.searchTerm) {
+      const searchConditions = search.searchFields.map(field => 
+        `${field} ILIKE '%${search.searchTerm}%'`
+      );
+      conditions.push(`(${searchConditions.join(' OR ')})`);
+    }
+    
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    return `
+      SELECT 
+        source_table_id,
+        sink_table_id,
+        datafactory_id,
+        operation_type,
+        params_type,
+        SUM(rows_added) as total_rows,
+        SUM(bytes_added) as total_size,
+        COUNT(DISTINCT batch_id) as batches_count,
+        COUNT(*) as events_count
+      FROM events
+      ${whereClause}
+      GROUP BY 
+        source_table_id,
+        sink_table_id,
+        datafactory_id,
+        operation_type,
+        params_type
+    `;
+  }
+
+  async getEventsAggregation(filters: TableFilter, search?: TableSearch): Promise<any> {
+    const query = this.buildTrinoQuery(filters, search);
+    
+    // Execute query against Trino
+    const response = await fetch('/api/trino/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to execute Trino query');
+    }
+    
+    return response.json();
+  }
 }
 
 // Custom node types
@@ -57,6 +162,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({ tables, arches, onAddTable, o
   const { toast } = useToast();
   
   const reactFlowInstance = useReactFlow();
+
+  const trinoService = ServiceFactory.createTrinoService();
 
   // Extract unique data factories and projects for filters
   const dataFactories = useMemo(() => {

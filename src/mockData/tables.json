@@ -1,0 +1,419 @@
+{
+  "tables": [
+    {
+      "table_id": "00000000-0000-0000-0000-000000000000",
+      "source_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "source_name": "Raw Data Source",
+      "table_full_name": "raw.source_data"
+    },
+    {
+      "table_id": "11111111-1111-1111-1111-111111111111",
+      "source_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "source_name": "Raw Data Source",
+      "table_full_name": "staged.source_data"
+    },
+    {
+      "table_id": "22222222-2222-2222-2222-222222222222",
+      "source_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "source_name": "Raw Data Source",
+      "table_full_name": "processed.source_data"
+    },
+    {
+      "table_id": "33333333-3333-3333-3333-333333333333",
+      "source_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "source_name": "Secondary Source",
+      "table_full_name": "raw.secondary_data"
+    },
+    {
+      "table_id": "44444444-4444-4444-4444-444444444444",
+      "source_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "source_name": "Secondary Source",
+      "table_full_name": "processed.secondary_data"
+    },
+    {
+      "table_id": "55555555-5555-5555-5555-555555555555",
+      "source_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "source_name": "Tertiary Source",
+      "table_full_name": "raw.tertiary_data"
+    },
+    {
+      "table_id": "66666666-6666-6666-6666-666666666666",
+      "source_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "source_name": "Tertiary Source",
+      "table_full_name": "staged.tertiary_data"
+    },
+    {
+      "table_id": "77777777-7777-7777-7777-777777777777",
+      "source_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "source_name": "Tertiary Source",
+      "table_full_name": "processed.tertiary_data"
+    },
+    {
+      "table_id": "88888888-8888-8888-8888-888888888888",
+      "source_id": "gggggggg-gggg-gggg-gggg-gggggggggggg",
+      "source_name": "Quaternary Source",
+      "table_full_name": "raw.quaternary_data"
+    },
+    {
+      "table_id": "99999999-9999-9999-9999-999999999999",
+      "source_id": "gggggggg-gggg-gggg-gggg-gggggggggggg",
+      "source_name": "Quaternary Source",
+      "table_full_name": "staged.quaternary_data"
+    },
+    {
+      "table_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "source_id": "gggggggg-gggg-gggg-gggg-gggggggggggg",
+      "source_name": "Quaternary Source",
+      "table_full_name": "custom.quaternary_data"
+    },
+    {
+      "table_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "source_id": "gggggggg-gggg-gggg-gggg-gggggggggggg",
+      "source_name": "Quaternary Source",
+      "table_full_name": "final.quaternary_data"
+    },
+    {
+      "table_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "source_id": "iiiiiiii-iiii-iiii-iiii-iiiiiiiiiiii",
+      "source_name": "Fifth Source",
+      "table_full_name": "raw.fifth_data"
+    }
+  ],
+  "mappings": {
+    "datafactories": {
+      "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa": "Data Factory 1",
+      "cccccccc-cccc-cccc-cccc-cccccccccccc": "Data Factory 2",
+      "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee": "Data Factory 3",
+      "gggggggg-gggg-gggg-gggg-gggggggggggg": "Data Factory 4",
+      "iiiiiiii-iiii-iiii-iiii-iiiiiiiiiiii": "Data Factory 5"
+    },
+    "projects": {
+      "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": "Project A",
+      "dddddddd-dddd-dddd-dddd-dddddddddddd": "Project B",
+      "ffffffff-ffff-ffff-ffff-ffffffffffff": "Project C",
+      "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh": "Project D"
+    }
+  },
+  "schema_mappings": {
+    "raw.source_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "raw_data",
+          "type": "VARCHAR",
+          "description": "Raw data from source"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "staged.source_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "processed_data",
+          "type": "VARCHAR",
+          "description": "Processed data"
+        },
+        {
+          "name": "batch_id",
+          "type": "BIGINT",
+          "description": "Processing batch identifier"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "processed.source_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "processed_data",
+          "type": "VARCHAR",
+          "description": "Processed data"
+        },
+        {
+          "name": "last_updated",
+          "type": "TIMESTAMP",
+          "description": "Last update timestamp"
+        },
+        {
+          "name": "batch_id",
+          "type": "BIGINT",
+          "description": "Processing batch identifier"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "raw.secondary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "secondary_raw_data",
+          "type": "VARCHAR",
+          "description": "Raw data from secondary source"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "processed.secondary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "processed_secondary_data",
+          "type": "VARCHAR",
+          "description": "Processed secondary data"
+        },
+        {
+          "name": "last_updated",
+          "type": "TIMESTAMP",
+          "description": "Last update timestamp"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "raw.tertiary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "tertiary_raw_data",
+          "type": "VARCHAR",
+          "description": "Raw data from tertiary source"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "staged.tertiary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "processed_tertiary_data",
+          "type": "VARCHAR",
+          "description": "Processed tertiary data"
+        },
+        {
+          "name": "batch_id",
+          "type": "BIGINT",
+          "description": "Processing batch identifier"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "processed.tertiary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "processed_tertiary_data",
+          "type": "VARCHAR",
+          "description": "Processed tertiary data"
+        },
+        {
+          "name": "last_updated",
+          "type": "TIMESTAMP",
+          "description": "Last update timestamp"
+        },
+        {
+          "name": "batch_id",
+          "type": "BIGINT",
+          "description": "Processing batch identifier"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "raw.quaternary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "quaternary_raw_data",
+          "type": "VARCHAR",
+          "description": "Raw data from quaternary source"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "staged.quaternary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "processed_quaternary_data",
+          "type": "VARCHAR",
+          "description": "Processed quaternary data"
+        },
+        {
+          "name": "batch_id",
+          "type": "BIGINT",
+          "description": "Processing batch identifier"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "custom.quaternary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "custom_processed_data",
+          "type": "VARCHAR",
+          "description": "Custom processed data"
+        },
+        {
+          "name": "last_updated",
+          "type": "TIMESTAMP",
+          "description": "Last update timestamp"
+        },
+        {
+          "name": "batch_id",
+          "type": "BIGINT",
+          "description": "Processing batch identifier"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "final.quaternary_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "final_processed_data",
+          "type": "VARCHAR",
+          "description": "Final processed data"
+        },
+        {
+          "name": "last_updated",
+          "type": "TIMESTAMP",
+          "description": "Last update timestamp"
+        },
+        {
+          "name": "batch_id",
+          "type": "BIGINT",
+          "description": "Processing batch identifier"
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "raw.fifth_data": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "VARCHAR",
+          "description": "Unique identifier"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "description": "Record creation timestamp"
+        },
+        {
+          "name": "fifth_raw_data",
+          "type": "VARCHAR",
+          "description": "Raw data from fifth source"
+        }
+      ],
+      "primary_key": ["id"]
+    }
+  }
+} 
