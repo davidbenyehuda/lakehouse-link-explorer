@@ -1,16 +1,41 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import TablesGraph from '../components/TablesGraph';
-import { generateMockDataset } from '../utils/mockData';
-import { Table, ArchDetails } from '../types/tables';
+import { Table, ArchDetails, ArchEvent, Operation, Event as ApiEvent, OperationType } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
-import { loadInitialData } from '../utils/importExport';
 import ImportExportButtons from '../components/ImportExportButtons';
+import { ServiceFactory } from '../services/ServiceFactory';
+
+const generateArchesFromData = (operations: Operation[], apiEvents: ApiEvent[]): ArchDetails[] => {
+  return operations.map(op => {
+    const archId = `${op.datafactory_id}-${op.source_table_id}-${op.sink_table_id}-${op.operation_type}-${op.created_at.toISOString()}`;
+    const relatedArchEvents: ArchEvent[] = apiEvents
+      .filter(apiEvent =>
+        apiEvent.source_table_id === op.source_table_id &&
+        apiEvent.sink_table_id === op.sink_table_id &&
+        apiEvent.datafactory_id === op.datafactory_id &&
+        apiEvent.operation_type === op.operation_type
+      )
+      .map(apiEvent => ({
+        timestamp: new Date(apiEvent.event_time),
+        rows_affected: apiEvent.rows_added,
+        duration_ms: 0,
+      }));
+
+    return {
+      id: archId,
+      source: op.source_table_id,
+      target: op.sink_table_id,
+      insertion_type: op.operation_type as OperationType,
+      events: relatedArchEvents,
+      operation: op,
+    };
+  });
+};
 
 const Index = () => {
   const [tables, setTables] = useState<Table[]>([]);
@@ -19,76 +44,80 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Try to load initial data from file, fallback to mock data
     const loadData = async () => {
       setIsLoading(true);
-      
       try {
-        const initialData = await loadInitialData();
-        
-        if (initialData) {
-          setTables(initialData.tables);
-          setArches(initialData.arches);
-          toast({
-            title: "Data Loaded",
-            description: "Initial data loaded from file."
-          });
-        } else {
-          const { tables, arches } = generateMockDataset();
-          setTables(tables);
-          setArches(arches);
-          toast({
-            title: "Mock Data Generated",
-            description: "Using generated mock data for visualization."
-          });
-        }
+        const metaDataService = ServiceFactory.createMetaDataService();
+        const operationsManagerService = ServiceFactory.createOperationsManagerService();
+        const trinoService = ServiceFactory.createTrinoService();
+
+        const tablesResponse = await metaDataService.getAllTables();
+        const operationsResponse = await operationsManagerService.getActiveOperations();
+        const eventsResponse = await (trinoService as any).getAllEvents();
+
+        const fetchedTables = tablesResponse.tables;
+        const fetchedOperations = operationsResponse.operations;
+        const fetchedEvents = eventsResponse.events;
+
+        const generatedArches = generateArchesFromData(fetchedOperations, fetchedEvents);
+
+        setTables(fetchedTables);
+        setArches(generatedArches);
+
+        toast({
+          title: "Data Loaded from Mock Services",
+          description: "Displaying data fetched via mock API services."
+        });
       } catch (error) {
-        console.error("Error loading data:", error);
-        const { tables, arches } = generateMockDataset();
-        setTables(tables);
-        setArches(arches);
+        console.error("Error loading data from mock services:", error);
+        setTables([]);
+        setArches([]);
+        toast({
+          title: "Error Loading Data",
+          description: "There was an issue loading data from mock services.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     };
-    
     loadData();
   }, [toast]);
 
-  // Handle adding a new table
   const handleAddTable = useCallback((newTable: Table, newArch?: ArchDetails) => {
     setTables(prev => [...prev, newTable]);
-    
     if (newArch) {
       setArches(prev => [...prev, newArch]);
     }
-    
     toast({
-      title: "Table Created",
-      description: `New table "${newTable.source_id}" has been created.`
+      title: "Table Created (In Memory)",
+      description: `New table "${newTable.source_name}" has been added to the view.`
     });
   }, [toast]);
 
   const handleAddArch = useCallback((newArch: ArchDetails) => {
     setArches(prev => [...prev, newArch]);
-    
     toast({
-      title: "Connection Created",
-      description: `New connection has been created.`
+      title: "Connection Created (In Memory)",
+      description: `New connection from "${newArch.source}" to "${newArch.target}" has been added to the view.`
     });
   }, [toast]);
 
   const handleImport = useCallback((importedTables: Table[], importedArches: ArchDetails[]) => {
     setTables(importedTables);
     setArches(importedArches);
-  }, []);
+    toast({
+      title: "Data Imported",
+      description: "Data has been imported successfully."
+    });
+  }, [toast]);
 
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-graph-background">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Loading Tables-Tree</h2>
-          <p className="text-gray-600">Preparing visualization...</p>
+          <p className="text-gray-600">Fetching data from mock services...</p>
         </div>
       </div>
     );
@@ -101,22 +130,22 @@ const Index = () => {
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold text-graph-text">Tables-Tree</h1>
-              <ImportExportButtons 
-                tables={tables} 
-                arches={arches} 
-                onImport={handleImport} 
+              <ImportExportButtons
+                tables={tables}
+                arches={arches}
+                onImport={handleImport}
               />
             </div>
-            <p className="text-gray-600">Visualizing table relationships in a managed lakehouse platform</p>
+            <p className="text-gray-600">Visualizing table relationships (data from mock services)</p>
           </div>
         </div>
       </header>
-      
+
       <div className="flex-grow relative overflow-hidden">
         <ReactFlowProvider>
-          <TablesGraph 
-            tables={tables} 
-            arches={arches} 
+          <TablesGraph
+            tables={tables}
+            arches={arches}
             onAddTable={handleAddTable}
             onAddArch={handleAddArch}
           />

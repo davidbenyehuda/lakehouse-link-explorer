@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Import, FileJson } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Table, ArchDetails } from '../types/tables';
+import { Table, ArchDetails } from '../types/api';
 import { exportData, importDataFromFile } from '../utils/importExport';
 
 interface ImportExportButtonsProps {
@@ -34,9 +34,9 @@ const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ tables, arche
 
     try {
       const importedData = await importDataFromFile(file);
-      
+
       onImport(importedData.tables, importedData.arches);
-      
+
       toast({
         title: "Import Successful",
         description: `Imported ${importedData.tables.length} tables and ${importedData.arches.length} arches.`
@@ -58,17 +58,17 @@ const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({ tables, arche
 
   return (
     <div className="flex gap-2">
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={handleExport}
         className="gap-1"
       >
         <FileJson size={16} />
         Export
       </Button>
-      
-      <Button 
-        variant="outline" 
+
+      <Button
+        variant="outline"
         onClick={handleImportClick}
         className="gap-1"
       >

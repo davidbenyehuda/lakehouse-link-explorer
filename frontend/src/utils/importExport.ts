@@ -1,5 +1,5 @@
 
-import { Table, ArchDetails } from '../types/tables';
+import { Table, ArchDetails } from '../types/api';
 import { saveAs } from 'file-saver';
 
 interface ExportData {
@@ -30,54 +30,54 @@ export const exportData = (tables: Table[], arches: ArchDetails[]): void => {
 export const importDataFromFile = (file: File): Promise<ExportData> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string) as ExportData;
-        
+
         // Validate imported data
         if (!data.tables || !Array.isArray(data.tables) || !data.arches || !Array.isArray(data.arches)) {
           reject(new Error('Invalid data format: Missing tables or arches array'));
           return;
         }
-        
+
         // Check if tables have required properties
-        const validTables = data.tables.every(table => 
+        const validTables = data.tables.every(table =>
           table.id && typeof table.id === 'string' &&
           table.source_id && typeof table.source_id === 'string' &&
           table.datafactory_id && typeof table.datafactory_id === 'string' &&
           table.project_id && typeof table.project_id === 'string'
         );
-        
+
         if (!validTables) {
           reject(new Error('Invalid table data: Missing required properties'));
           return;
         }
-        
+
         // Check if arches have required properties
-        const validArches = data.arches.every(arch => 
+        const validArches = data.arches.every(arch =>
           arch.id && typeof arch.id === 'string' &&
           arch.source && typeof arch.source === 'string' &&
           arch.target && typeof arch.target === 'string' &&
           arch.insertion_type && typeof arch.insertion_type === 'string' &&
           arch.events && Array.isArray(arch.events)
         );
-        
+
         if (!validArches) {
           reject(new Error('Invalid arch data: Missing required properties'));
           return;
         }
-        
+
         resolve(data);
       } catch (error) {
         reject(new Error('Failed to parse imported file'));
       }
     };
-    
+
     reader.onerror = () => {
       reject(new Error('Failed to read imported file'));
     };
-    
+
     reader.readAsText(file);
   });
 };

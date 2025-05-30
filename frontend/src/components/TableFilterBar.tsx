@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from 'date-fns';
 import { CalendarIcon, FilterIcon } from 'lucide-react';
-import { FilterOptions } from '../types/tables';
+import { FilterOptions } from '../types/api';
 
 interface TableFilterBarProps {
   dataFactories: string[];
@@ -14,16 +14,16 @@ interface TableFilterBarProps {
   onFilterChange: (filters: FilterOptions) => void;
 }
 
-const TableFilterBar: React.FC<TableFilterBarProps> = ({ 
-  dataFactories, 
+const TableFilterBar: React.FC<TableFilterBarProps> = ({
+  dataFactories,
   projects,
-  onFilterChange 
+  onFilterChange
 }) => {
   const [selectedDataFactory, setSelectedDataFactory] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  
+
   useEffect(() => {
     const newFilters: FilterOptions = {};
     if (selectedDataFactory !== 'all') {
@@ -40,7 +40,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
     }
     onFilterChange(newFilters);
   }, [selectedDataFactory, selectedProject, startDate, endDate, onFilterChange]);
-  
+
   const handleClearFilters = () => {
     setSelectedDataFactory('all');
     setSelectedProject('all');
@@ -62,7 +62,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
   if (endDate) {
     currentFilters.endDate = endDate;
   }
-  
+
   const hasActiveFilters = Object.keys(currentFilters).length > 0;
 
   return (
@@ -77,11 +77,11 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
             </div>
           )}
         </div>
-        
+
         {hasActiveFilters && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClearFilters}
             className="text-xs"
           >
@@ -110,7 +110,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
           <label className="text-xs text-gray-600 mb-1 block">Project</label>
           <Select
@@ -130,7 +130,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
           <label className="text-xs text-gray-600 mb-1 block">Start Date</label>
           <Popover>
@@ -157,7 +157,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
             </PopoverContent>
           </Popover>
         </div>
-        
+
         <div>
           <label className="text-xs text-gray-600 mb-1 block">End Date</label>
           <Popover>

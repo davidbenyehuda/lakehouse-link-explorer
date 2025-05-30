@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableColumn } from "../types/tables";
+import { Table, TableColumn } from "../types/api";
 import { Plus } from "lucide-react";
 
 interface CreateTableDialogProps {
@@ -15,11 +15,11 @@ interface CreateTableDialogProps {
   onTableCreate: (table: Partial<Table>, sourceTableId?: string, createAsSelect?: boolean) => void;
 }
 
-const CreateTableDialog: React.FC<CreateTableDialogProps> = ({ 
-  tables, 
-  dataFactories, 
-  projects, 
-  onTableCreate 
+const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
+  tables,
+  dataFactories,
+  projects,
+  onTableCreate
 }) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -36,7 +36,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
     merge_statement: '',
     columns: [] as TableColumn[]
   });
-  
+
   const [showSchemaEditor, setShowSchemaEditor] = useState(true);
   const [columnName, setColumnName] = useState('');
   const [columnType, setColumnType] = useState('');
@@ -67,7 +67,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
   const handleChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // If source table is changed, reset related fields
       if (field === 'sourceTableId') {
         if (value === 'none') {
@@ -76,7 +76,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
           newData.order_by = '';
           newData.merge_statement = '';
           newData.createAsSelect = false;
-          
+
           // If no source table, always show schema editor
           setShowSchemaEditor(true);
         } else {
@@ -84,12 +84,12 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
           setShowSchemaEditor(!newData.createAsSelect);
         }
       }
-      
+
       // If create as select is toggled, update schema editor visibility
       if (field === 'createAsSelect') {
         setShowSchemaEditor(!value);
       }
-      
+
       return newData;
     });
   };
@@ -115,33 +115,33 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!formData.source_id || !formData.datafactory_id || !formData.project_id) {
       return;
     }
-    
+
     // If no source table or not using createAsSelect, require schema
     if ((formData.sourceTableId === 'none' || !formData.createAsSelect) && formData.columns.length === 0) {
       setSchemaError("Please define at least one column for the table schema");
       return;
     }
-    
+
     // If source table is selected but not 'none', require insertion type
     if (formData.sourceTableId !== 'none' && !formData.insertion_type) {
       setSchemaError("Please select an insertion type for the connection");
       return;
     }
-    
+
     // Clear any previous errors
     setSchemaError('');
-    
+
     onTableCreate(
-      formData, 
+      formData,
       formData.sourceTableId !== 'none' ? formData.sourceTableId : undefined,
       formData.createAsSelect
     );
-    
+
     setOpen(false);
   };
 
@@ -229,8 +229,8 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
             {formData.sourceTableId !== 'none' && (
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="createAsSelect" 
+                  <Checkbox
+                    id="createAsSelect"
                     checked={formData.createAsSelect}
                     onCheckedChange={(checked) => handleChange('createAsSelect', !!checked)}
                   />
@@ -296,7 +296,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
             {showSchemaEditor && (
               <div className="space-y-4">
                 <Label>Table Schema</Label>
-                
+
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
                     <Label htmlFor="columnName" className="text-xs">Column Name</Label>
@@ -318,11 +318,11 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                   </div>
                   <Button type="button" size="sm" onClick={addColumn} className="mb-0">Add</Button>
                 </div>
-                
+
                 {schemaError && (
                   <p className="text-red-500 text-sm">{schemaError}</p>
                 )}
-                
+
                 {formData.columns.length > 0 && (
                   <div className="border rounded-md p-2 max-h-[200px] overflow-y-auto">
                     <table className="min-w-full">
@@ -339,10 +339,10 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                             <td className="py-1 px-2">{col.name}</td>
                             <td className="py-1 px-2">{col.type}</td>
                             <td className="py-1 px-2 text-right">
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => removeColumn(index)}
                               >
                                 ✕
@@ -369,7 +369,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                   placeholder="0"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="size_in_mb">Initial Size (MB)</Label>
                 <Input
@@ -384,7 +384,7 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="submit">Create Table</Button>
           </DialogFooter>

@@ -1,76 +1,79 @@
-import { TableFilter, TableSearch, TrinoApi } from '@/types/api';
-import mockEvents from '../../mockData/events.json';
+import { TrinoApi, TableFilter, TableSearch, Event as ApiEvent } from '@/types/api';
+import { mockEvents } from './MockData';
 
 export class MockTrinoService implements TrinoApi {
-  async getEventsAggregation(filters: TableFilter, search?: TableSearch) {
-    // First filter the events based on provided filters
-    let filteredEvents = mockEvents.events.filter(event => {
-      // Apply datafactory_id filter
-      if (filters.datafactory_id?.length && !filters.datafactory_id.includes(event.datafactory_id)) {
-        return false;
-      }
+  async getEventsAggregation(
+    filters: TableFilter,
+    search?: TableSearch
+  ): Promise<Array<{
+    source_table_id: string;
+    sink_table_id: string;
+    datafactory_id: string;
+    operation_type: string;
+    params_type: string;
+    total_rows: number;
+    total_size: number;
+    batches_count: number;
+    events_count: number;
+  }>> {
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Apply project_id filter
-      if (filters.project_id?.length && !filters.project_id.includes(event.project_id)) {
-        return false;
-      }
+    let filteredEvents = [...mockEvents];
 
-      // Apply source_id filter
-      if (filters.source_id?.length && !filters.source_id.includes(event.source_table_id)) {
-        return false;
-      }
-
-      // Apply operation_type filter
-      if (filters.operation_type?.length && !filters.operation_type.includes(event.operation_type as any)) {
-        return false;
-      }
-
-      // Apply time_range filter
-      if (filters.time_range) {
+    // Apply filters
+    if (filters.datafactory_id?.length) {
+      filteredEvents = filteredEvents.filter(event => filters.datafactory_id?.includes(event.datafactory_id));
+    }
+    if (filters.project_id?.length) {
+      // ApiEvent doesn't have project_id directly. This filter would need modification or data enrichment.
+      // For now, this filter will not apply unless project_id is added to ApiEvent or mapped.
+    }
+    if (filters.source_id?.length) {
+      // ApiEvent has source_table_id and sink_table_id. Assuming filters.source_id refers to either.
+      filteredEvents = filteredEvents.filter(event =>
+        filters.source_id?.includes(event.source_table_id) ||
+        filters.source_id?.includes(event.sink_table_id)
+      );
+    }
+    if (filters.operation_type?.length) {
+      filteredEvents = filteredEvents.filter(event => filters.operation_type?.includes(event.operation_type as any));
+    }
+    if (filters.time_range && filters.time_range[0] && filters.time_range[1]) {
+      const startTime = new Date(filters.time_range[0]).getTime();
+      const endTime = new Date(filters.time_range[1]).getTime();
+      filteredEvents = filteredEvents.filter(event => {
         const eventTime = new Date(event.event_time).getTime();
-        const startTime = new Date(filters.time_range[0]).getTime();
-        const endTime = new Date(filters.time_range[1]).getTime();
-        if (eventTime < startTime || eventTime > endTime) {
-          return false;
-        }
-      }
+        return eventTime >= startTime && eventTime <= endTime;
+      });
+    }
+    if (filters.params_type?.length) {
+      filteredEvents = filteredEvents.filter(event => filters.params_type?.includes(event.params_type as any));
+    }
+    if (filters.operation_status?.length) {
+      // ApiEvent doesn't have operation_status directly. This filter would need data enrichment.
+    }
 
-      // Apply search if provided
-      if (search) {
-        const searchTerm = search.searchTerm.toLowerCase();
+    // Apply search (simplified search on a few fields)
+    if (search?.searchTerm && search.searchFields.length > 0) {
+      const term = search.searchTerm.toLowerCase();
+      filteredEvents = filteredEvents.filter(event => {
         return search.searchFields.some(field => {
-          switch (field) {
-            case 'source_id':
-              return event.source_table_id.toLowerCase().includes(searchTerm);
-            case 'project_id':
-              return event.project_id.toLowerCase().includes(searchTerm);
-            case 'datafactory_id':
-              return event.datafactory_id.toLowerCase().includes(searchTerm);
-            default:
-              return false;
+          if (field === 'source_id') { // Assuming searchField 'source_id' maps to table ids
+            return event.source_table_id.toLowerCase().includes(term) || event.sink_table_id.toLowerCase().includes(term);
           }
+          if (field === 'datafactory_id') {
+            return event.datafactory_id.toLowerCase().includes(term);
+          }
+          // ApiEvent doesn't have project_id directly for search.
+          return false;
         });
-      }
+      });
+    }
 
-      return true;
-    });
-
-    // Group and aggregate the filtered events
-    const aggregationMap = new Map<string, {
-      source_table_id: string;
-      sink_table_id: string;
-      datafactory_id: string;
-      operation_type: string;
-      params_type: string;
-      total_rows: number;
-      total_size: number;
-      batches_count: number;
-      events_count: number;
-    }>();
-
+    // Perform aggregation
+    const aggregationMap = new Map<string, any>();
     filteredEvents.forEach(event => {
       const key = `${event.source_table_id}-${event.sink_table_id}-${event.datafactory_id}-${event.operation_type}-${event.params_type}`;
-      
       if (!aggregationMap.has(key)) {
         aggregationMap.set(key, {
           source_table_id: event.source_table_id,
@@ -80,18 +83,30 @@ export class MockTrinoService implements TrinoApi {
           params_type: event.params_type,
           total_rows: 0,
           total_size: 0,
-          batches_count: 0,
-          events_count: 0
+          batches_count: 0, // This would require distinct batch_id logic
+          events_count: 0,
+          batch_ids_set: new Set<number>(), // To count distinct batches
         });
       }
-
-      const aggregation = aggregationMap.get(key)!;
-      aggregation.total_rows += event.rows_added;
-      aggregation.total_size += event.bytes_added;
-      aggregation.batches_count += 1;
-      aggregation.events_count += 1;
+      const agg = aggregationMap.get(key);
+      agg.total_rows += event.rows_added;
+      agg.total_size += event.bytes_added;
+      agg.events_count += 1;
+      agg.batch_ids_set.add(event.batch_id);
     });
 
-    return Array.from(aggregationMap.values());
+    const result = Array.from(aggregationMap.values()).map(agg => {
+      agg.batches_count = agg.batch_ids_set.size;
+      delete agg.batch_ids_set; // Clean up temporary set
+      return agg;
+    });
+
+    return Promise.resolve(result);
+  }
+
+  // Added method to get all raw events
+  async getAllEvents(): Promise<{ events: ApiEvent[] }> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return Promise.resolve({ events: mockEvents });
   }
 } 

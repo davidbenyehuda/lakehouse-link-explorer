@@ -5,17 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Table, ArchDetails } from "../types/tables";
+import { ArchDetails } from "../types/api";
+import { Table } from '@/types/api';
 import { ArrowUpDown } from 'lucide-react';
 
 interface CreateArchDialogProps {
   tables: Table[];
   onArchCreate: (arch: Partial<ArchDetails>) => void;
+  sourceNodeId: string;
+  targetNodeId: string;
 }
 
-const CreateArchDialog: React.FC<CreateArchDialogProps> = ({ 
-  tables, 
-  onArchCreate 
+const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
+  tables,
+  onArchCreate,
+  sourceNodeId,
+  targetNodeId,
 }) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,7 +35,7 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
   const handleChange = (field: string, value: string) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // Clear dependent fields when insertion type changes
       if (field === 'insertion_type') {
         if (value !== 'insert_upsert') {
@@ -41,30 +46,30 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
           newData.merge_statement = '';
         }
       }
-      
+
       return newData;
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!formData.source || !formData.target || !formData.insertion_type) {
       return;
     }
-    
+
     // Validate additional fields based on insertion type
     if (formData.insertion_type === 'insert_upsert' && !formData.primary_key) {
       alert("Primary key is required for upsert operations.");
       return;
     }
-    
+
     if (formData.insertion_type === 'insert_custom' && !formData.merge_statement) {
       alert("Merge statement is required for custom insertions.");
       return;
     }
-    
+
     onArchCreate(formData);
     setOpen(false);
   };
@@ -72,7 +77,7 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
   // Filter out the source table from target options to prevent self-references
   const getTargetOptions = () => {
     if (!formData.source) return tables;
-    return tables.filter(table => table.id !== formData.source);
+    return tables.filter(table => table.source_id !== formData.source);
   };
 
   return (
@@ -100,14 +105,14 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {tables.map((table) => (
-                    <SelectItem key={table.id} value={table.id}>
+                    <SelectItem key={table.source_id} value={table.source_id}>
                       {table.source_id} ({table.datafactory_id} - {table.project_id})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="target">Target Table</Label>
               <Select
@@ -120,14 +125,14 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {getTargetOptions().map((table) => (
-                    <SelectItem key={table.id} value={table.id}>
+                    <SelectItem key={table.source_id} value={table.source_id}>
                       {table.source_id} ({table.datafactory_id} - {table.project_id})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="insertion_type">Connection Type</Label>
               <Select
@@ -144,7 +149,7 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            
+
             {formData.insertion_type === 'insert_upsert' && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -167,7 +172,7 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
                 </div>
               </div>
             )}
-            
+
             {formData.insertion_type === 'insert_custom' && (
               <div className="space-y-2">
                 <Label htmlFor="merge_statement">Merge Statement</Label>
@@ -181,7 +186,7 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button type="submit">Create Connection</Button>
           </DialogFooter>

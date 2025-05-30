@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { Table } from '../types/tables';
+import { Table } from '../types/api';
 
 interface TableSearchProps {
   tables: Table[];
@@ -31,7 +31,7 @@ const TableSearch: React.FC<TableSearchProps> = ({ tables, onTableSelect }) => {
     }
 
     const term = searchTerm.toLowerCase();
-    const results = tables.filter(table => 
+    const results = tables.filter(table =>
       table.source_id.toLowerCase().includes(term) ||
       table.datafactory_id.toLowerCase().includes(term) ||
       table.project_id.toLowerCase().includes(term)

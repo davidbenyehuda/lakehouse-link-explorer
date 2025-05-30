@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table as TableType, ArchDetails } from "../types/tables";
+import { Table as TableType, ArchDetails } from "../types/api";
 import { ExternalLink, RefreshCw, ArrowUpDown as SyncIcon, Database, X } from 'lucide-react';
 
 interface DetailsSidebarProps {
@@ -79,7 +79,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
             <TabsTrigger value="schema">Schema</TabsTrigger>
             <TabsTrigger value="actions">Actions</TabsTrigger>
           </TabsList>
-          
+
           <div className="flex-grow overflow-y-auto">
             <TabsContent value="overview" className="p-4 space-y-4 h-full">
               <div>
@@ -118,13 +118,13 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 </div>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="schema" className="p-4 h-full overflow-y-auto">
               <div className="flex justify-between items-center mb-2">
                 <h4 className="text-sm font-medium">Table Schema</h4>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowAllColumns(!showAllColumns)}
                 >
                   {showAllColumns ? 'Show Less' : 'Show All'}
@@ -156,12 +156,12 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                 )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="actions" className="p-4 space-y-4 h-full">
               <div className="grid grid-cols-2 gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleRecreate}
                   className="flex items-center gap-1 h-auto py-2"
                 >
@@ -171,11 +171,11 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <span className="text-xs text-gray-500">Reset table structure</span>
                   </div>
                 </Button>
-                
+
                 <Dialog open={showRefreshDialog} onOpenChange={setShowRefreshDialog}>
                   <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="flex items-center gap-1 h-auto py-2"
                     >
@@ -193,10 +193,10 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label htmlFor="startTime">Start Time</Label>
-                        <Input 
-                          id="startTime" 
-                          type="datetime-local" 
-                          value={refreshStartTime} 
+                        <Input
+                          id="startTime"
+                          type="datetime-local"
+                          value={refreshStartTime}
                           onChange={(e) => setRefreshStartTime(e.target.value)}
                         />
                       </div>
@@ -207,11 +207,11 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-                
+
                 <Dialog open={showSyncDialog} onOpenChange={setShowSyncDialog}>
                   <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="flex items-center gap-1 h-auto py-2"
                     >
@@ -229,19 +229,19 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label htmlFor="syncStartTime">Start Time</Label>
-                        <Input 
-                          id="syncStartTime" 
-                          type="datetime-local" 
-                          value={syncStartTime} 
+                        <Input
+                          id="syncStartTime"
+                          type="datetime-local"
+                          value={syncStartTime}
                           onChange={(e) => setSyncStartTime(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="syncEndTime">End Time</Label>
-                        <Input 
-                          id="syncEndTime" 
-                          type="datetime-local" 
-                          value={syncEndTime} 
+                        <Input
+                          id="syncEndTime"
+                          type="datetime-local"
+                          value={syncEndTime}
                           onChange={(e) => setSyncEndTime(e.target.value)}
                         />
                       </div>
@@ -297,20 +297,20 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
     // Calculate statistics from events if statistics object is not available
     const getStatistics = () => {
       if (selectedArch.statistics) return selectedArch.statistics;
-      
+
       const events = selectedArch.events || [];
       const totalRows = events.reduce((sum, event) => sum + event.rows_affected, 0);
-      const avgRunTime = events.length ? 
-        (events.reduce((sum, event) => sum + event.duration_ms, 0) / events.length / 1000).toFixed(2) : 
+      const avgRunTime = events.length ?
+        (events.reduce((sum, event) => sum + event.duration_ms, 0) / events.length / 1000).toFixed(2) :
         '0';
-      
+
       return {
         count: events.length,
         rows: totalRows,
         avgRunTime,
-        lastCompletedEvent: selectedArch.last_completed_time ? 
+        lastCompletedEvent: selectedArch.last_completed_time ?
           formatDate(selectedArch.last_completed_time) : 'N/A',
-        avgTimeBetweenEvents: selectedArch.avg_time_between_events_ms ? 
+        avgTimeBetweenEvents: selectedArch.avg_time_between_events_ms ?
           (selectedArch.avg_time_between_events_ms / 1000).toFixed(2) : '0',
       };
     };
@@ -337,7 +337,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
             <TabsTrigger value="sql">SQL</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
           </TabsList>
-          
+
           <div className="flex-grow overflow-y-auto">
             <TabsContent value="overview" className="p-4 space-y-4">
               <div className="flex items-center gap-2">
@@ -408,7 +408,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <span className="font-medium">Rows Affected:</span>
                       <span>{event.rows_affected.toLocaleString()}</span>
-                      
+
                       <span className="font-medium">Duration:</span>
                       <span>{(event.duration_ms / 1000).toFixed(2)} seconds</span>
                     </div>

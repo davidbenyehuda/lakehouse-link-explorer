@@ -43,6 +43,8 @@ export interface MetaDataApi {
     full_name: string;
     // other metadata
   }>;
+
+  getAllTables(): Promise<{ tables: Table[] }>;
 }
 export type OperationType = 'insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom' | 'wait';
 export type OperationStatus = 'pending' | 'in_progress' | 'failure' | 'hold';
@@ -130,4 +132,32 @@ export interface TrinoApi {
     batches_count: number;
     events_count: number;
   }>>;
-} 
+  getAllEvents(): Promise<{ events: Event[] }>;
+}
+export interface ArchEvent {
+  timestamp: Date;
+  rows_affected: number;
+  duration_ms: number; // Made required as per linter error for DetailsSidebar
+}
+
+export interface ArchDetails {
+  id: string;
+  source: string;
+  target: string;
+  insertion_type: OperationType;
+  events: ArchEvent[];
+  primary_key?: string;
+  order_by?: string;
+  merge_statement?: string;
+  sql_query?: string;
+  operation: Operation;
+}
+
+
+export interface FilterOptions {
+  datafactory_id?: string;
+  project_id?: string;
+  startDate?: Date;
+  endDate?: Date;
+  tableId?: string;
+}
