@@ -1,7 +1,7 @@
 import { MetaDataApi } from '@/types/api';
 
 export class RealMetaDataService implements MetaDataApi {
-  private baseUrl = process.env.METADATA_API_URL || 'http://localhost:3001/api';
+  private baseUrl = import.meta.env.VITE_METADATA_API_URL || 'http://localhost:3001/api';
 
   async getLabelMappings() {
     const response = await fetch(`${this.baseUrl}/labels`);

@@ -1,13 +1,12 @@
 export interface Table {
-  id: string;
-  source_id: string;
-  datafactory_id: string;
-  project_id: string;
-  row_count: number;
-  size_in_mb: number;
-  columns?: TableColumn[];
-  position?: { x: number; y: number };
-  last_accessed?: Date;
+  source_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  source_name: string; // name of the source of the table - e.g ("weather-events", "daily-weather-events","latest-weather-events")
+  datafactory_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  project_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  row_count: number; // number of rows in the table
+  size_in_mb: number; // size of the table in mb
+  columns?: TableColumn[]; // columns of the table
+  position?: { x: number; y: number }; // position of the table in the graph
   query_count?: number;
   insertion_type?: string;
   primary_key?: string;
@@ -17,21 +16,10 @@ export interface Table {
 }
 
 export interface TableColumn {
-  name: string;
-  type: string;
+  name: string; // name of the column ('location', 'date', 'temperature', 'humidity', 'wind_speed', 'precipitation')
+  type: string; // type of the column ('string', 'int', 'float', 'date', 'boolean', 'array', 'record', 'map')
 }
 
-export interface TableEvent {
-  id?: string;
-  event_type: string;
-  timestamp: Date;
-  details: {
-    status: string;
-    rows_affected?: number;
-    duration_seconds?: number;
-    success?: boolean;
-  };
-}
 
 export interface ArchEvent {
   timestamp: Date;

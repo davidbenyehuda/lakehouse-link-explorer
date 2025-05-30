@@ -1,4 +1,12 @@
 // API Interfaces
+
+export interface Transformation {
+  field_name: string;
+  function_name: string;
+  params: { name: string; type: string; value: string }[];
+  transformation_type: 'replace' | 'add';
+}
+
 export interface MetaDataApi {
   getLabelMappings(): Promise<{
     datafactories: { [id: string]: string };
@@ -10,8 +18,9 @@ export interface MetaDataApi {
     source_table_id: string;
     sink_table_id: string;
     operation_type: 'insert_stage_1';
-    transformations: any;
+    transformations: Transformation[];
   }>;
+
 
   getUpsertArchMetadata(source_table_id: string, sink_table_id: string): Promise<{
     source_table_id: string;
@@ -35,43 +44,73 @@ export interface MetaDataApi {
     // other metadata
   }>;
 }
+export type OperationType = 'insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom' | 'wait';
+export type OperationStatus = 'pending' | 'in_progress' | 'failure' | 'hold';
+export type OperationParamsType = 'batch_ids' | 'time_range';
+
+export interface Operation {
+  source_table_id: string;
+  sink_table_id: string;
+  datafactory_id: string;
+  operation_type: OperationType;
+  is_running: boolean;
+  status: OperationStatus;
+  params_type: OperationParamsType;
+  created_at: Date;
+  last_update_time: Date;
+}
 
 export interface OperationsManagerApi {
   getActiveOperations(): Promise<{
-    operations: Array<{
-      source_table_id: string;
-      sink_table_id: string;
-      datafactory_id: string;
-      operation_type: string;
-      is_running: boolean;
-      status: 'pending' | 'in_progress' | 'failure' | 'hold';
-      params_type: 'batches' | 'time_range';
-    }>;
+    operations: Operation[];
   }>;
 }
 
 // Additional types for Trino service
-export interface Event {
+export interface Event { // should describe changes in a given table from a given operation on a given table
   source_table_id: string;
   sink_table_id: string;
   datafactory_id: string;
-  project_id: string;
-  operation_id: string;
-  batch_id: number;
-  operation_type: string;
-  params_type: string;
-  params: (string | number)[];
-  rows_added: number;
-  bytes_added: number;
-  event_time: string;
+  operation_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  batch_id: number; // timestamp in nanoseconds
+  operation_type: string; // insert_stage_0, insert_stage_1, insert_upsert, insert_custom
+  params_type: string; // batches, time_range
+  params: (string | number)[]; // array of strings or numbers
+  rows_added: number; // number of rows added
+  bytes_added: number; // number of bytes added
+  event_time: Date; // timestamp of the event
+}
+
+export interface Table {
+  source_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  source_name: string; // name of the source of the table - e.g ("weather-events", "daily-weather-events","latest-weather-events")
+  datafactory_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  project_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  row_count: number; // number of rows in the table
+  size_in_mb: number; // size of the table in mb
+  columns?: TableColumn[]; // columns of the table
+  position?: { x: number; y: number }; // position of the table in the graph
+  query_count?: number;
+  insertion_type?: string;
+  primary_key?: string;
+  order_by?: string;
+  merge_statement?: string;
+  sql_query?: string;
+}
+
+export interface TableColumn {
+  name: string; // name of the column ('location', 'date', 'temperature', 'humidity', 'wind_speed', 'precipitation')
+  type: string; // type of the column ('string', 'int', 'float', 'date', 'boolean', 'array', 'record', 'map')
 }
 
 export interface TableFilter {
   datafactory_id?: string[];
   project_id?: string[];
   source_id?: string[];
-  operation_type?: ('insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom')[];
-  time_range?: [string, string];
+  operation_type?: OperationType[];
+  time_range?: [Date, Date];
+  params_type?: OperationParamsType[];
+  operation_status?: OperationStatus[];
 }
 
 export interface TableSearch {

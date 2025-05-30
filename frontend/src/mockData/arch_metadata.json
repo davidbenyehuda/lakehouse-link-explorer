@@ -1,8 +1,8 @@
 {
   "stage1_metadata": {
-    "11111111_1111_1111_1111_111111111111_22222222_2222_2222_2222_222222222222": {
-      "source_table_id": "11111111-1111-1111-1111-111111111111",
-      "sink_table_id": "22222222-2222-2222-2222-222222222222",
+    "staged_source_data_table_processed_source_data_table": {
+      "source_table_id": "staged-source-data-table",
+      "sink_table_id": "processed-source-data-table",
       "operation_type": "insert_stage_1",
       "transformations": {
         "column_mappings": {
@@ -16,9 +16,9 @@
         }
       }
     },
-    "55555555_5555_5555_5555_555555555555_66666666_6666_6666_6666_666666666666": {
-      "source_table_id": "55555555-5555-5555-5555-555555555555",
-      "sink_table_id": "66666666-6666-6666-6666-666666666666",
+    "raw_tertiary_data_table_staged_tertiary_data_table": {
+      "source_table_id": "raw-tertiary-data-table",
+      "sink_table_id": "staged-tertiary-data-table",
       "operation_type": "insert_stage_1",
       "transformations": {
         "column_mappings": {
@@ -32,9 +32,9 @@
         }
       }
     },
-    "88888888_8888_8888_8888_888888888888_99999999_9999_9999_9999_999999999999": {
-      "source_table_id": "88888888-8888-8888-8888-888888888888",
-      "sink_table_id": "99999999-9999-9999-9999-999999999999",
+    "raw_quaternary_data_table_staged_quaternary_data_table": {
+      "source_table_id": "raw-quaternary-data-table",
+      "sink_table_id": "staged-quaternary-data-table",
       "operation_type": "insert_stage_1",
       "transformations": {
         "column_mappings": {
@@ -50,25 +50,33 @@
     }
   },
   "upsert_metadata": {
-    "33333333_3333_3333_3333_333333333333_44444444_4444_4444_4444_444444444444": {
-      "source_table_id": "33333333-3333-3333-3333-333333333333",
-      "sink_table_id": "44444444-4444-4444-4444-444444444444",
+    "raw_secondary_data_table_processed_secondary_data_table": {
+      "source_table_id": "raw-secondary-data-table",
+      "sink_table_id": "processed-secondary-data-table",
       "operation_type": "insert_upsert",
-      "primary_key": ["id"],
-      "order_by": ["created_at"]
+      "primary_key": [
+        "id"
+      ],
+      "order_by": [
+        "created_at"
+      ]
     },
-    "66666666_6666_6666_6666_666666666666_77777777_7777_7777_7777_777777777777": {
-      "source_table_id": "66666666-6666-6666-6666-666666666666",
-      "sink_table_id": "77777777-7777-7777-7777-777777777777",
+    "staged_tertiary_data_table_processed_tertiary_data_table": {
+      "source_table_id": "staged-tertiary-data-table",
+      "sink_table_id": "processed-tertiary-data-table",
       "operation_type": "insert_upsert",
-      "primary_key": ["id"],
-      "order_by": ["created_at"]
+      "primary_key": [
+        "id"
+      ],
+      "order_by": [
+        "created_at"
+      ]
     }
   },
   "custom_metadata": {
-    "99999999_9999_9999_9999_999999999999_aaaaaaaa_aaaa_aaaa_aaaa_aaaaaaaaaaaa": {
-      "source_table_id": "99999999-9999-9999-9999-999999999999",
-      "sink_table_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "staged_quaternary_data_table_custom_quaternary_data_table": {
+      "source_table_id": "staged-quaternary-data-table",
+      "sink_table_id": "custom-quaternary-data-table",
       "operation_type": "insert_custom",
       "records_query": "SELECT id, created_at, processed_data, batch_id FROM staged.quaternary_data WHERE batch_id = ?",
       "statement_type": "insert",
@@ -76,9 +84,9 @@
         "batch_id_param": "batch_id"
       }
     },
-    "aaaaaaaa_aaaa_aaaa_aaaa_aaaaaaaaaaaa_bbbbbbbb_bbbb_bbbb_bbbb_bbbbbbbbbbbb": {
-      "source_table_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-      "sink_table_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "custom_quaternary_data_table_final_quaternary_data_table": {
+      "source_table_id": "custom-quaternary-data-table",
+      "sink_table_id": "final-quaternary-data-table",
       "operation_type": "insert_custom",
       "records_query": "SELECT id, created_at, processed_data, batch_id FROM custom.quaternary_data WHERE batch_id = ?",
       "statement_type": "insert",
@@ -87,4 +95,4 @@
       }
     }
   }
-} 
+}
