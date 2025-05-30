@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { Table } from '../types/api';
+import { Table } from '@/types/api';
 
 interface TableSearchProps {
   tables: Table[];
@@ -77,11 +76,11 @@ const TableSearch: React.FC<TableSearchProps> = ({ tables, onTableSelect }) => {
             <ul className="divide-y">
               {searchResults.map((table) => (
                 <li
-                  key={table.id}
+                  key={table.source_id}
                   className="p-2 text-sm hover:bg-gray-50 cursor-pointer"
-                  onClick={() => handleTableClick(table.id)}
+                  onClick={() => handleTableClick(table.source_id)}
                 >
-                  <div className="font-medium">{table.source_id}</div>
+                  <div className="font-medium">{table.source_name || table.source_id}</div>
                   <div className="text-xs text-gray-600">
                     Client: {table.datafactory_id} • Project: {table.project_id}
                   </div>

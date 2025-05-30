@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableColumn } from "../types/api";
+import { Table, TableColumn } from "@/types/api";
 import { Plus } from "lucide-react";
 
 interface CreateTableDialogProps {
@@ -218,8 +218,8 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
                   {tables.map((table) => (
-                    <SelectItem key={table.id} value={table.id}>
-                      {table.source_id} ({table.datafactory_id} - {table.project_id})
+                    <SelectItem key={table.source_id} value={table.source_id}>
+                      {table.source_name || table.source_id} ({table.datafactory_id} - {table.project_id})
                     </SelectItem>
                   ))}
                 </SelectContent>

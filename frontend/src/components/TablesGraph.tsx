@@ -455,7 +455,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
         <ResizablePanelGroup direction="horizontal" className="h-full">
           {(selectedTable || selectedArch) && (
             <>
-              <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+              <ResizablePanel id="details-panel" defaultSize={30} minSize={20} maxSize={50}>
                 <div className="h-full overflow-auto bg-white border-r p-1">
                   <DetailsSidebar
                     selectedTable={selectedTable}
@@ -468,7 +468,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
             </>
           )}
 
-          <ResizablePanel defaultSize={(selectedTable || selectedArch) ? 70 : 100}>
+          <ResizablePanel id="graph-panel" defaultSize={(selectedTable || selectedArch) ? 70 : 100}>
             <ReactFlow
               nodes={nodes}
               edges={edges}

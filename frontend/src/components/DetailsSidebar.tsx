@@ -279,13 +279,13 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
   const getInsertionTypeBadge = (type: string) => {
     switch (type) {
       case 'insert_stage_0':
-        return <Badge className="bg-[#4361ee]">Raw JSON</Badge>;
+        return <Badge className="bg-[#4361ee]">insert_stage_0 (Raw JSON)</Badge>;
       case 'insert_stage_1':
-        return <Badge className="bg-[#4cc9f0]">Transform</Badge>;
+        return <Badge className="bg-[#4cc9f0]">insert_stage_1 (Transform)</Badge>;
       case 'insert_upsert':
-        return <Badge className="bg-[#7209b7] text-white">Upsert</Badge>;
+        return <Badge className="bg-[#7209b7] text-white">insert_upsert (Upsert)</Badge>;
       case 'insert_custom':
-        return <Badge className="bg-[#f72585] text-white">Custom</Badge>;
+        return <Badge className="bg-[#f72585] text-white">insert_custom (Custom)</Badge>;
       default:
         return <Badge>Unknown</Badge>;
     }

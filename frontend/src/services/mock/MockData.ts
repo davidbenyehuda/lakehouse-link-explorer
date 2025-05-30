@@ -13,6 +13,7 @@ const PROJECT_ID_WEATHER = "weather-proj-uuid-01";
 const DATAFACTORY_ID_INGESTION = "ingestion-df-uuid-01";
 const DATAFACTORY_ID_TRANSFORMATION = "transform-df-uuid-01";
 
+const SOURCE_TABLE_EXTERNAL_SENSORS_ID = "external-sensors-uuid-01";
 const SOURCE_TABLE_RAW_WEATHER_ID = "raw-weather-events-uuid-01";
 const SINK_TABLE_DAILY_AGG_ID = "daily-weather-agg-uuid-01";
 const SINK_TABLE_LATEST_EVENTS_ID = "latest-weather-events-uuid-01";
@@ -25,6 +26,26 @@ const OPERATION_ID_UPSERT_LATEST = "op-upsert-latest-uuid-01";
 const OPERATION_ID_CUSTOM_REPORT = "op-custom-report-uuid-01";
 
 // --- Mock Table Objects ---
+
+export const mockExternalSensorsTable: Table = {
+    source_id: SOURCE_TABLE_EXTERNAL_SENSORS_ID,
+    source_name: "external_iot_weather_sensors",
+    datafactory_id: "external-source-df",
+    project_id: PROJECT_ID_WEATHER,
+    row_count: 10000000,
+    size_in_mb: 500,
+    columns: [
+        { name: "sensor_id", type: "varchar" },
+        { name: "capture_timestamp", type: "timestamp(6)" },
+        { name: "latitude", type: "double" },
+        { name: "longitude", type: "double" },
+        { name: "raw_temperature_payload", type: "varchar" },
+        { name: "raw_humidity_payload", type: "varchar" },
+    ],
+    position: { x: -200, y: 200 },
+    query_count: 10,
+    insertion_type: "stream",
+};
 
 export const mockRawWeatherTable: Table = {
     source_id: SOURCE_TABLE_RAW_WEATHER_ID,
@@ -108,6 +129,7 @@ export const mockCustomWeatherReportTable: Table = {
 
 
 export const mockTables: Table[] = [
+    mockExternalSensorsTable,
     mockRawWeatherTable,
     mockDailyWeatherAggTable,
     mockLatestWeatherEventsTable,
@@ -119,9 +141,12 @@ export const mockTables: Table[] = [
 const now = new Date();
 const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+const fiveHoursAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000);
 
 export const mockIngestRawOp: Operation = {
-    source_table_id: "external_iot_weather_sensors", // Conceptual source
+    source_table_id: SOURCE_TABLE_EXTERNAL_SENSORS_ID,
     sink_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
     datafactory_id: DATAFACTORY_ID_INGESTION,
     operation_type: 'insert_stage_0',
@@ -177,59 +202,239 @@ export const mockOperations: Operation[] = [
 
 
 // --- Mock Event Objects ---
-export const mockEventIngestRaw: Event = {
-    source_table_id: "external_iot_weather_sensors",
+export const mockEventIngestRaw1: Event = {
+    source_table_id: SOURCE_TABLE_EXTERNAL_SENSORS_ID,
     sink_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
     datafactory_id: DATAFACTORY_ID_INGESTION,
     operation_id: OPERATION_ID_INGEST_RAW,
-    batch_id: Date.now() * 1000 - 5000000, // nanoseconds
+    batch_id: fiveHoursAgo.getTime() * 1000,
     operation_type: 'insert_stage_0',
     params_type: 'time_range',
-    params: [new Date(oneHourAgo.getTime() - 60 * 60 * 1000).toISOString(), oneHourAgo.toISOString()],
-    rows_added: 10000,
-    bytes_added: 2000000, // 2MB
-    event_time: oneHourAgo,
+    params: [new Date(fiveHoursAgo.getTime() - 60 * 60 * 1000).toISOString(), fiveHoursAgo.toISOString()],
+    rows_added: 12000,
+    bytes_added: 2400000,
+    event_time: fiveHoursAgo,
 };
 
-export const mockEventAggDaily: Event = {
+export const mockEventIngestRaw2: Event = {
+    source_table_id: SOURCE_TABLE_EXTERNAL_SENSORS_ID,
+    sink_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    datafactory_id: DATAFACTORY_ID_INGESTION,
+    operation_id: OPERATION_ID_INGEST_RAW,
+    batch_id: fourHoursAgo.getTime() * 1000 + 1000,
+    operation_type: 'insert_stage_0',
+    params_type: 'time_range',
+    params: [new Date(fourHoursAgo.getTime() - 60 * 60 * 1000).toISOString(), fourHoursAgo.toISOString()],
+    rows_added: 15000,
+    bytes_added: 3000000,
+    event_time: fourHoursAgo,
+};
+
+export const mockEventIngestRaw3: Event = {
+    source_table_id: SOURCE_TABLE_EXTERNAL_SENSORS_ID,
+    sink_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    datafactory_id: DATAFACTORY_ID_INGESTION,
+    operation_id: OPERATION_ID_INGEST_RAW,
+    batch_id: threeHoursAgo.getTime() * 1000 + 2000,
+    operation_type: 'insert_stage_0',
+    params_type: 'time_range',
+    params: [new Date(threeHoursAgo.getTime() - 30 * 60 * 1000).toISOString(), threeHoursAgo.toISOString()],
+    rows_added: 9000,
+    bytes_added: 1800000,
+    event_time: threeHoursAgo,
+};
+
+export const mockEventIngestRaw4: Event = {
+    source_table_id: SOURCE_TABLE_EXTERNAL_SENSORS_ID,
+    sink_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    datafactory_id: DATAFACTORY_ID_INGESTION,
+    operation_id: OPERATION_ID_INGEST_RAW,
+    batch_id: twoHoursAgo.getTime() * 1000 + 3000,
+    operation_type: 'insert_stage_0',
+    params_type: 'time_range',
+    params: [new Date(twoHoursAgo.getTime() - 15 * 60 * 1000).toISOString(), twoHoursAgo.toISOString()],
+    rows_added: 11000,
+    bytes_added: 2200000,
+    event_time: twoHoursAgo,
+};
+
+
+export const mockEventAggDaily1: Event = {
     source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
     sink_table_id: SINK_TABLE_DAILY_AGG_ID,
     datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
     operation_id: OPERATION_ID_AGG_DAILY,
-    batch_id: Date.now() * 1000 - 3000000,
+    batch_id: threeHoursAgo.getTime() * 1000 - 3000000,
     operation_type: 'insert_stage_1',
     params_type: 'batch_ids',
     params: [12345, 12346, 12347],
     rows_added: 500,
-    bytes_added: 100000, // 0.1MB
-    event_time: new Date(now.getTime() - 30 * 60 * 1000), // 30 mins ago
+    bytes_added: 100000,
+    event_time: new Date(threeHoursAgo.getTime() + 30 * 60 * 1000),
 };
 
-export const mockEventUpsertLatest: Event = {
+export const mockEventAggDaily2: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: SINK_TABLE_DAILY_AGG_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_AGG_DAILY,
+    batch_id: twoHoursAgo.getTime() * 1000 - 2000000,
+    operation_type: 'insert_stage_1',
+    params_type: 'batch_ids',
+    params: [12348, 12349],
+    rows_added: 350,
+    bytes_added: 70000,
+    event_time: new Date(twoHoursAgo.getTime() + 15 * 60 * 1000),
+};
+
+export const mockEventAggDaily3: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: SINK_TABLE_DAILY_AGG_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_AGG_DAILY,
+    batch_id: oneHourAgo.getTime() * 1000 - 1000000,
+    operation_type: 'insert_stage_1',
+    params_type: 'batch_ids',
+    params: [12350, 12351, 12352, 12353],
+    rows_added: 620,
+    bytes_added: 124000,
+    event_time: new Date(oneHourAgo.getTime() + 5 * 60 * 1000),
+};
+
+export const mockEventUpsertLatest1: Event = {
     source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
     sink_table_id: SINK_TABLE_LATEST_EVENTS_ID,
     datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
     operation_id: OPERATION_ID_UPSERT_LATEST,
-    batch_id: Date.now() * 1000 - 1000000,
+    batch_id: oneHourAgo.getTime() * 1000 - 1000000,
     operation_type: 'insert_upsert',
     params_type: 'time_range',
-    params: [new Date(now.getTime() - 10 * 60 * 1000).toISOString(), now.toISOString()],
-    rows_added: 10, // Small number, could be updates
-    bytes_added: 2000, // 2KB
-    event_time: new Date(now.getTime() - 5 * 60 * 1000), // 5 mins ago
+    params: [new Date(oneHourAgo.getTime() - 10 * 60 * 1000).toISOString(), oneHourAgo.toISOString()],
+    rows_added: 10,
+    bytes_added: 2000,
+    event_time: new Date(oneHourAgo.getTime() + 5 * 60 * 1000),
 };
 
+export const mockEventUpsertLatest2: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: SINK_TABLE_LATEST_EVENTS_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_UPSERT_LATEST,
+    batch_id: now.getTime() * 1000 - 500000,
+    operation_type: 'insert_upsert',
+    params_type: 'time_range',
+    params: [new Date(now.getTime() - 5 * 60 * 1000).toISOString(), now.toISOString()],
+    rows_added: 12,
+    bytes_added: 2400,
+    event_time: new Date(now.getTime() - 2 * 60 * 1000),
+};
+
+export const mockEventUpsertLatest3: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: SINK_TABLE_LATEST_EVENTS_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_UPSERT_LATEST,
+    batch_id: now.getTime() * 1000,
+    operation_type: 'insert_upsert',
+    params_type: 'time_range',
+    params: [new Date(now.getTime() - 2 * 60 * 1000).toISOString(), now.toISOString()],
+    rows_added: 8,
+    bytes_added: 1600,
+    event_time: now,
+};
+
+export const mockEventCustomReport1: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: CUSTOM_REPORT_TABLE_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_CUSTOM_REPORT,
+    batch_id: twoHoursAgo.getTime() * 1000 - 500000,
+    operation_type: 'insert_custom',
+    params_type: 'batch_ids',
+    params: [6001, 6002],
+    rows_added: 50,
+    bytes_added: 15000,
+    event_time: new Date(twoHoursAgo.getTime() + 10 * 60 * 1000),
+};
+
+export const mockEventCustomReport2: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: CUSTOM_REPORT_TABLE_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_CUSTOM_REPORT,
+    batch_id: oneHourAgo.getTime() * 1000 - 250000,
+    operation_type: 'insert_custom',
+    params_type: 'batch_ids',
+    params: [6003],
+    rows_added: 25,
+    bytes_added: 7500,
+    event_time: new Date(oneHourAgo.getTime() + 5 * 60 * 1000),
+};
+
+export const mockEventCustomReport3: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: CUSTOM_REPORT_TABLE_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_CUSTOM_REPORT,
+    batch_id: now.getTime() * 1000 - 100000,
+    operation_type: 'insert_custom',
+    params_type: 'batch_ids',
+    params: [6004, 6005, 6006],
+    rows_added: 70,
+    bytes_added: 21000,
+    event_time: now,
+};
+
+export const mockEventAggDaily4: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: SINK_TABLE_DAILY_AGG_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_AGG_DAILY,
+    batch_id: now.getTime() * 1000 - 50000,
+    operation_type: 'insert_stage_1',
+    params_type: 'batch_ids',
+    params: [12354, 12355],
+    rows_added: 280,
+    bytes_added: 56000,
+    event_time: new Date(now.getTime() - 1 * 60 * 1000),
+};
+
+export const mockEventUpsertLatest4: Event = {
+    source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
+    sink_table_id: SINK_TABLE_LATEST_EVENTS_ID,
+    datafactory_id: DATAFACTORY_ID_TRANSFORMATION,
+    operation_id: OPERATION_ID_UPSERT_LATEST,
+    batch_id: now.getTime() * 1000 + 100000,
+    operation_type: 'insert_upsert',
+    params_type: 'time_range',
+    params: [now.toISOString(), new Date(now.getTime() + 2 * 60 * 1000).toISOString()],
+    rows_added: 5,
+    bytes_added: 1000,
+    event_time: new Date(now.getTime() + 1 * 60 * 1000),
+};
 
 export const mockEvents: Event[] = [
-    mockEventIngestRaw,
-    mockEventAggDaily,
-    mockEventUpsertLatest,
+    mockEventIngestRaw1,
+    mockEventIngestRaw2,
+    mockEventIngestRaw3,
+    mockEventIngestRaw4,
+    mockEventAggDaily1,
+    mockEventAggDaily2,
+    mockEventAggDaily3,
+    mockEventAggDaily4,
+    mockEventUpsertLatest1,
+    mockEventUpsertLatest2,
+    mockEventUpsertLatest3,
+    mockEventUpsertLatest4,
+    mockEventCustomReport1,
+    mockEventCustomReport2,
+    mockEventCustomReport3,
 ];
 
 // --- Mock ArchMetadata Objects ---
 // (These correspond to the return types of MetaDataApi methods)
 
-export const mockStage1ArchData = { // : ReturnType<MetaDataApi['getStage1ArchMetadata']> (inner object)
+export const mockStage1ArchData = {
     source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
     sink_table_id: SINK_TABLE_DAILY_AGG_ID,
     operation_type: 'insert_stage_1' as OperationType,
@@ -264,7 +469,7 @@ export const mockStage1ArchData = { // : ReturnType<MetaDataApi['getStage1ArchMe
     ] as Transformation[],
 };
 
-export const mockUpsertArchData = { // : ReturnType<MetaDataApi['getUpsertArchMetadata']> (inner object)
+export const mockUpsertArchData = {
     source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
     sink_table_id: SINK_TABLE_LATEST_EVENTS_ID,
     operation_type: 'insert_upsert' as OperationType,
@@ -272,7 +477,7 @@ export const mockUpsertArchData = { // : ReturnType<MetaDataApi['getUpsertArchMe
     order_by: ["event_timestamp DESC"],
 };
 
-export const mockCustomArchData = { // : ReturnType<MetaDataApi['getCustomArchMetadata']> (inner object)
+export const mockCustomArchData = {
     source_table_id: SOURCE_TABLE_RAW_WEATHER_ID,
     sink_table_id: CUSTOM_REPORT_TABLE_ID,
     operation_type: 'insert_custom' as OperationType,
