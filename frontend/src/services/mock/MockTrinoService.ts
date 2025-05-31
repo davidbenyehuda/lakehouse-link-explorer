@@ -1,21 +1,12 @@
-import { TrinoApi, TableFilter, TableSearch, Event as ApiEvent } from '@/types/api';
+import { TrinoApi, TableFilter, TableSearch, Event as ApiEvent, AggregatedEvent } from '@/types/api';
 import { mockEvents } from './MockData';
+import { max } from 'date-fns';
 
 export class MockTrinoService implements TrinoApi {
   async getEventsAggregation(
-    filters: TableFilter,
+    filters?: TableFilter,
     search?: TableSearch
-  ): Promise<Array<{
-    source_table_id: string;
-    sink_table_id: string;
-    datafactory_id: string;
-    operation_type: string;
-    params_type: string;
-    total_rows: number;
-    total_size: number;
-    batches_count: number;
-    events_count: number;
-  }>> {
+  ): Promise<Array<AggregatedEvent>> {
     await new Promise(resolve => setTimeout(resolve, 300));
 
     let filteredEvents = [...mockEvents];
@@ -86,6 +77,7 @@ export class MockTrinoService implements TrinoApi {
           batches_count: 0, // This would require distinct batch_id logic
           events_count: 0,
           batch_ids_set: new Set<number>(), // To count distinct batches
+          last_updated: event.event_time,
         });
       }
       const agg = aggregationMap.get(key);
@@ -93,6 +85,7 @@ export class MockTrinoService implements TrinoApi {
       agg.total_size += event.bytes_added;
       agg.events_count += 1;
       agg.batch_ids_set.add(event.batch_id);
+      agg.last_updated = event.event_time > agg.last_updated ? event.event_time : agg.last_updated;
     });
 
     const result = Array.from(aggregationMap.values()).map(agg => {

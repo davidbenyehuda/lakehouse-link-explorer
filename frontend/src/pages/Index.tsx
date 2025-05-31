@@ -5,14 +5,13 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import TablesGraph from '../components/TablesGraph';
-import { Table, ArchDetails, ArchEvent, Operation, Event as ApiEvent, OperationType } from '@/types/api';
+import { Table, ArchDetails, ArchEvent, Operation, Event as ApiEvent,AggregatedEvent, OperationType, TableFilter, TableSearch } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import ImportExportButtons from '../components/ImportExportButtons';
 import { ServiceFactory } from '../services/ServiceFactory';
 
-const generateArchesFromData = (operations: Operation[], apiEvents: ApiEvent[]): ArchDetails[] => {
+const generateArchesFromData = (operations: Operation[], apiEvents: AggregatedEvent[]): ArchDetails[] => {
   return operations.map(op => {
-    const archId = `${op.datafactory_id}-${op.source_table_id}-${op.sink_table_id}-${op.operation_type}-${op.created_at.toISOString()}`;
     const relatedArchEvents: ArchEvent[] = apiEvents
       .filter(apiEvent =>
         apiEvent.source_table_id === op.source_table_id &&
@@ -51,13 +50,62 @@ const Index = () => {
         const operationsManagerService = ServiceFactory.createOperationsManagerService();
         const trinoService = ServiceFactory.createTrinoService();
 
-        const tablesResponse = await metaDataService.getAllTables();
+        // Get operations and events first
         const operationsResponse = await operationsManagerService.getActiveOperations();
-        const eventsResponse = await (trinoService as any).getAllEvents();
+        const filters: TableFilter = {}; // Add appropriate filter values
+        const search: TableSearch = { searchTerm: '', searchFields: [] }; // Add appropriate search values if needed
+        const events = await trinoService.getEventsAggregation(filters, search);
+        const labelMappings = await metaDataService.getLabelMappings();
 
-        const fetchedTables = tablesResponse.tables;
         const fetchedOperations = operationsResponse.operations;
-        const fetchedEvents = eventsResponse.events;
+        const fetchedEvents = events;
+
+        // Extract unique table IDs from operations and events
+        const tableIds = new Set<string>();
+        fetchedOperations.forEach(op => {
+          tableIds.add(op.source_table_id);
+          tableIds.add(op.sink_table_id);
+        });
+        fetchedEvents.forEach(event => {
+          tableIds.add(event.source_table_id);
+          tableIds.add(event.sink_table_id);
+        });
+
+        // Get all project and datafactory IDs in one batch
+        const tableIdsArray = Array.from(tableIds);
+        const projectData = await metaDataService.getProjectIDs(tableIdsArray);
+        const datafactoryData = await metaDataService.getDatafactoryIDs(tableIdsArray);
+
+        // Create table objects from the IDs using label mappings
+        const fetchedTables: Table[] = tableIdsArray.map(source_id => {
+          // Find events where this table is the sink
+          const sinkEvents = fetchedEvents.filter(event => 
+            event.sink_table_id === source_id && event.operation_type != 'insert_stage_0'
+          );
+          
+          // Calculate total rows and size from sink events only
+          const totalRows = sinkEvents.reduce((sum, event) => sum + event.total_rows, 0);
+          const last_updated =  sinkEvents.reduce((max_date: Date | null, event) => 
+             event.last_updated > max_date ? event.last_updated : max_date, new Date(0));
+
+          const totalSize = sinkEvents.reduce((sum, event) => sum + event.total_size, 0);
+          
+          return {
+            source_id,
+            source_name: labelMappings.sources[source_id] || source_id,
+            datafactory_id: datafactoryData[source_id]?.datafactory_id || '',
+            project_id: projectData[source_id]?.project_id || '',
+            row_count: totalRows,
+            size_in_mb: Math.round(totalSize / (1024 * 1024)), // Convert bytes to MB
+            columns: [],
+            position: { x: 0, y: 0 },
+            query_count: 0,
+            datafactory_name:  labelMappings.datafactories[datafactoryData[source_id]?.datafactory_id] || '',
+            project_name: labelMappings.projects[projectData[source_id]?.project_id] || '',
+            table_name: labelMappings.table_names[source_id] || '',
+            last_updated: last_updated || new Date(0),
+          };
+        });
 
         const generatedArches = generateArchesFromData(fetchedOperations, fetchedEvents);
 
@@ -65,8 +113,8 @@ const Index = () => {
         setArches(generatedArches);
 
         toast({
-          title: "Data Loaded from Mock Services",
-          description: "Displaying data fetched via mock API services."
+          title: "Data Loaded from Operations and Events",
+          description: "Displaying data derived from operations and events."
         });
       } catch (error) {
         console.error("Error loading data from mock services:", error);

@@ -8,6 +8,32 @@ import {
     OperationParamsType,
 } from '@/types/api';
 
+const DATAFACTORY_NAME_WEATHER_NAME = "weather";
+const DATAFACTORY_NAME_WEATHER_ID = "00000000-0000-0000-0000-000000000000";
+const PROJECT_WEATHER_STATIONS_NAME = "stations";
+const PROJECT_WEATHER_STATIONS_ID = "00000000-0000-0000-0000-000000000002";
+const PROJECT_WEATHER_CITIES_NAME = "cities";
+const PROJECT_WEATHER_CITIES_ID = "00000000-0000-0000-0000-000000000003";
+const SOURCE_TABLE_WEATHER_STATIONS_EVENTS_ID = "00000000-0000-0000-0000-000000000004";
+const SOURCE_TABLE_WEATHER_STATIONS_EVENTS_NAME = "events";
+const SOURCE_TABLE_WEATHER_STATIONS_EVENTS_TABLE_NAME = "weather__stations.events_raw";
+
+const SOURCE_TABLE_WEATHER_STATIONS_LATEST_EVENTS_ID = "00000000-0000-0000-0000-000000000005";
+const SOURCE_TABLE_WEATHER_STATIONS_LATEST_EVENTS_NAME = "latest_events";
+const SOURCE_TABLE_WEATHER_STATIONS_LATEST_EVENTS_TABLE_NAME = "weather__stations.latest_events_org";
+const SOURCE_TABLE_WEATHER_CITIES_DAILY_REPORT_ID = "00000000-0000-0000-0000-000000000006";
+const SOURCE_TABLE_WEATHER_CITIES_DAILY_REPORT_NAME = "daily_report";
+const SOURCE_TABLE_WEATHER_CITIES_DAILY_REPORT_TABLE_NAME = "weather__cities.daily_report_org";
+
+
+
+
+
+const DATAFACTORY_NAME_CARS_NAME = "cars";
+const DATAFACTORY_NAME_CARS_ID = "00000000-0000-0000-0000-000000000001";
+
+
+
 // --- Common Identifiers ---
 const PROJECT_ID_WEATHER = "weather-proj-uuid-01";
 const DATAFACTORY_ID_INGESTION = "ingestion-df-uuid-01";
@@ -24,6 +50,16 @@ const OPERATION_ID_INGEST_RAW = "op-ingest-raw-uuid-01";
 const OPERATION_ID_AGG_DAILY = "op-agg-daily-uuid-01";
 const OPERATION_ID_UPSERT_LATEST = "op-upsert-latest-uuid-01";
 const OPERATION_ID_CUSTOM_REPORT = "op-custom-report-uuid-01";
+
+export const mockDatafactoryIds: { [source_id: string]: { datafactory_id: string } } = {
+    [SOURCE_TABLE_EXTERNAL_SENSORS_ID]: { datafactory_id: DATAFACTORY_ID_INGESTION },
+    [SOURCE_TABLE_RAW_WEATHER_ID]: { datafactory_id: DATAFACTORY_ID_TRANSFORMATION },
+    [SINK_TABLE_DAILY_AGG_ID]: { datafactory_id: DATAFACTORY_ID_TRANSFORMATION },
+    [SINK_TABLE_LATEST_EVENTS_ID]: { datafactory_id: DATAFACTORY_ID_TRANSFORMATION },
+    [CUSTOM_REPORT_TABLE_ID]: { datafactory_id: DATAFACTORY_ID_TRANSFORMATION },
+};
+
+
 
 // --- Mock Table Objects ---
 
@@ -44,7 +80,6 @@ export const mockExternalSensorsTable: Table = {
     ],
     position: { x: -200, y: 200 },
     query_count: 10,
-    insertion_type: "stream",
 };
 
 export const mockRawWeatherTable: Table = {
@@ -64,7 +99,6 @@ export const mockRawWeatherTable: Table = {
     ],
     position: { x: 100, y: 200 },
     query_count: 50,
-    insertion_type: "append_only",
 };
 
 export const mockDailyWeatherAggTable: Table = {
@@ -84,7 +118,6 @@ export const mockDailyWeatherAggTable: Table = {
     ],
     position: { x: 400, y: 100 },
     query_count: 120,
-    insertion_type: "overwrite_partition",
     primary_key: "aggregation_date, city_id",
 };
 
@@ -103,7 +136,6 @@ export const mockLatestWeatherEventsTable: Table = {
     ],
     position: { x: 400, y: 300 },
     query_count: 250,
-    insertion_type: "upsert",
     primary_key: "city_id",
     order_by: "last_event_timestamp desc",
 };
@@ -123,8 +155,6 @@ export const mockCustomWeatherReportTable: Table = {
     ],
     position: { x: 700, y: 200 },
     query_count: 10,
-    insertion_type: "insert_custom_query",
-    sql_query: "SELECT ... FROM " + SOURCE_TABLE_RAW_WEATHER_ID + " WHERE temperature_celsius > 35",
 };
 
 

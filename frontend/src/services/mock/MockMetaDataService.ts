@@ -12,23 +12,27 @@ export class MockMetaDataService implements MetaDataApi {
     datafactories: { [id: string]: string };
     projects: { [id: string]: string };
     sources: { [id: string]: string };
+    table_names: { [id: string]: string };
   }> {
     await new Promise(resolve => setTimeout(resolve, 150));
     // Example labels, these could be dynamically generated from mockTables or be static in MockData.ts
     const datafactories: { [id: string]: string } = {};
     const projects: { [id: string]: string } = {};
     const sources: { [id: string]: string } = {};
+    const table_names: { [id: string]: string } = {};
 
     mockTables.forEach(table => {
       if (table.datafactory_id) datafactories[table.datafactory_id] = `DF: ${table.datafactory_id.split('-')[0]}`;
       if (table.project_id) projects[table.project_id] = `Proj: ${table.project_id.split('-')[0]}`;
       if (table.source_id) sources[table.source_id] = table.source_name;
+      if (table.source_id) table_names[table.source_id] = table.table_name;
     });
 
     return Promise.resolve({
       datafactories,
       projects,
-      sources
+      sources,
+      table_names
     });
   }
 
@@ -90,5 +94,36 @@ export class MockMetaDataService implements MetaDataApi {
   async getAllTables(): Promise<{ tables: Table[] }> {
     await new Promise(resolve => setTimeout(resolve, 100));
     return Promise.resolve({ tables: mockTables });
+  }
+  async getProjectIDs(source_ids: string[]): Promise<{
+    [source_id: string]: {
+      project_id: string;
+      // other metadata
+    }
+  }> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const projectIds: { [source_id: string]: { project_id: string } } = {};
+    mockTables.forEach(table => {
+      if (source_ids.includes(table.source_id)) {
+        projectIds[table.source_id] = { project_id: table.project_id };
+      }
+    });
+    return Promise.resolve(projectIds);
+  }
+
+  async getDatafactoryIDs(source_ids: string[]): Promise<{
+    [source_id: string]: {
+      datafactory_id: string;
+      // other metadata
+    } 
+  }> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const datafactoryIds: { [source_id: string]: { datafactory_id: string } } = {};
+    mockTables.forEach(table => {
+        if (source_ids.includes(table.source_id)) {
+        datafactoryIds[table.source_id] = { datafactory_id: table.datafactory_id };
+      }
+    });
+    return Promise.resolve(datafactoryIds);
   }
 } 
