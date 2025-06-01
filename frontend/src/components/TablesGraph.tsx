@@ -191,7 +191,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
     const positionedTablesOutput = positionTables([...tablesToRender]);
 
     const initialNodes: Node[] = positionedTablesOutput.map((table) => ({
-      id: table.source_id,
+      id: table.table_id,
       type: 'tableNode',
       data: { table, isFocused: focusedTable === table.source_id },
       position: table.position || { x: Math.random() * 500, y: Math.random() * 500 },
@@ -205,10 +205,10 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
       .map((arch) => {
         const archColor = getArchColor(arch.insertion_type);
         return {
-          id: arch.id,
+          id: arch.get_id(),
           source: arch.source,
           target: arch.target,
-          animated: arch.operation.is_running || false,
+          animated: arch.is_active() || false,
           style: { stroke: archColor, strokeWidth: 2 },
           markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: archColor },
           data: { ...arch },
@@ -340,40 +340,34 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
     if (!onAddTable) return;
 
     const newTableId = uuidv4();
-    const newTable: Table = {
-      source_id: newTableId,
-      source_name: tableData.source_name || 'New Table',
-      datafactory_id: tableData.datafactory_id || (dataFactories.length > 0 ? dataFactories[0] : 'default-df-id'),
-      project_id: tableData.project_id || (projects.length > 0 ? projects[0] : 'default-proj-id'),
-      row_count: tableData.row_count || 0,
-      size_in_mb: tableData.size_in_mb || 0,
-      columns: tableData.columns || [],
-      position: { x: Math.random() * 200 + 50, y: Math.random() * 200 + 50 },
-      query_count: tableData.query_count || 0,
-      insertion_type: tableData.insertion_type,
-    };
+    const newTable = new Table(
+      newTableId, // table_id
+      newTableId, // source_id
+      tableData.source_name || 'New Table', // source_name
+      tableData.datafactory_id || (dataFactories.length > 0 ? dataFactories[0] : 'default-df-id'), // datafactory_id
+      '', // datafactory_name
+      tableData.project_id || (projects.length > 0 ? projects[0] : 'default-proj-id'), // project_id
+      '', // project_name
+      tableData.source_name || 'New Table', // table_name
+      tableData.row_count || 0, // row_count
+      tableData.size_in_mb || 0, // size_in_mb
+      new Date(), // last_updated
+      tableData.columns || [], // columns
+      { x: Math.random() * 200 + 50, y: Math.random() * 200 + 50 }, // position
+      tableData.query_count || 0 // query_count
+    );
 
     let newArch: ArchDetails | undefined = undefined;
-    if (sourceTableSourceId && tableData.insertion_type) {
+    if (sourceTableSourceId) {
       const archId = uuidv4();
-      newArch = {
-        id: archId,
-        source: sourceTableSourceId,
-        target: newTable.source_id,
-        insertion_type: tableData.insertion_type as OperationType,
-        events: [],
-        operation: {
-          source_table_id: sourceTableSourceId,
-          sink_table_id: newTable.source_id,
-          datafactory_id: newTable.datafactory_id,
-          operation_type: tableData.insertion_type as OperationType,
-          is_running: false,
-          status: 'pending',
-          params_type: 'batch_ids',
-          created_at: new Date(),
-          last_update_time: new Date(),
-        },
-      };
+      newArch = new ArchDetails(
+        sourceTableSourceId, // source_table_source_id
+        newTable.source_id, // sink_table_source_id
+        sourceTableSourceId, // source
+        newTable.source_id, // target
+        tableData.insertion_type as OperationType, // insertion_type
+        'pending' // status
+      );
     }
     onAddTable(newTable, newArch);
     toast({ title: "Table Created", description: `Table "${newTable.source_name}" added.` });
@@ -385,28 +379,21 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
       return;
     }
 
-    const newArch: ArchDetails = {
-      id: uuidv4(),
-      source: archData.source,
-      target: archData.target,
-      insertion_type: archData.insertion_type as OperationType,
-      events: [],
-      operation: {
-        source_table_id: archData.source,
-        sink_table_id: archData.target,
-        datafactory_id: tables.find(t => t.source_id === archData.source)?.datafactory_id || 'default-df-id',
-        operation_type: archData.insertion_type as OperationType,
-        is_running: false,
-        status: 'pending',
-        params_type: 'batch_ids',
-        created_at: new Date(),
-        last_update_time: new Date(),
-      },
-      primary_key: archData.primary_key,
-      order_by: archData.order_by,
-      merge_statement: archData.merge_statement,
-      sql_query: archData.sql_query,
-    };
+    const newArch = new ArchDetails(
+      archData.source, // source_table_source_id
+      archData.target, // sink_table_source_id
+      archData.source, // source
+      archData.target, // target
+      archData.insertion_type as OperationType, // insertion_type
+      'pending', // status
+      undefined, // id
+      [], // events
+      archData.primary_key, // primary_key
+      archData.order_by, // order_by
+      archData.merge_statement, // merge_statement
+      archData.sql_query, // sql_query
+      archData.transformations // transformations
+    );
 
     onAddArch(newArch);
     toast({ title: "Connection Created", description: `Connection from "${newArch.source}" to "${newArch.target}" added.` });

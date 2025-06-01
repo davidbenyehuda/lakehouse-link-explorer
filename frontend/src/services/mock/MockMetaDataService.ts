@@ -1,10 +1,13 @@
-import { MetaDataApi, Table, Transformation, OperationType } from '@/types/api';
+import { MetaDataApi, Table, TableColumn,Transformation, OperationType, Stage1Arch, UpsertArc, CustomArc } from '@/types/api';
 import {
   mockTables,
-  mockStage1ArchData,
-  mockUpsertArchData,
-  mockCustomArchData,
-  // Assuming mockLabelMappings would be added to MockData.ts if needed
+  SOURCE_IDS_TO_COLUMNS,
+  ETL_ARCS,
+  SOURCE_NAMES,
+  DATAFACTORY,
+  PROJECTS,
+  SOURCE_IDS,
+  TABLE_NAMES
 } from './MockData';
 
 export class MockMetaDataService implements MetaDataApi {
@@ -15,18 +18,38 @@ export class MockMetaDataService implements MetaDataApi {
     table_names: { [id: string]: string };
   }> {
     await new Promise(resolve => setTimeout(resolve, 150));
-    // Example labels, these could be dynamically generated from mockTables or be static in MockData.ts
-    const datafactories: { [id: string]: string } = {};
-    const projects: { [id: string]: string } = {};
-    const sources: { [id: string]: string } = {};
-    const table_names: { [id: string]: string } = {};
+    
+    const datafactories: { [id: string]: string } = {
+      [DATAFACTORY.ID]: DATAFACTORY.NAME
+    };
 
-    mockTables.forEach(table => {
-      if (table.datafactory_id) datafactories[table.datafactory_id] = `DF: ${table.datafactory_id.split('-')[0]}`;
-      if (table.project_id) projects[table.project_id] = `Proj: ${table.project_id.split('-')[0]}`;
-      if (table.source_id) sources[table.source_id] = table.source_name;
-      if (table.source_id) table_names[table.source_id] = table.table_name;
-    });
+    const projects: { [id: string]: string } = {
+      [PROJECTS.STAGING.ID]: PROJECTS.STAGING.NAME,
+      [PROJECTS.DIMENSIONS.ID]: PROJECTS.DIMENSIONS.NAME,
+      [PROJECTS.FACTS.ID]: PROJECTS.FACTS.NAME
+    };
+
+    const sources: { [id: string]: string } = {
+      [SOURCE_IDS.STAGING_ORDERS]: SOURCE_NAMES.STAGING,
+      [SOURCE_IDS.STAGING_ORDER_ITEMS]: SOURCE_NAMES.STAGING,
+      [SOURCE_IDS.DIM_CUSTOMERS]: SOURCE_NAMES.DIMENSIONS,
+      [SOURCE_IDS.DIM_PRODUCTS]: SOURCE_NAMES.DIMENSIONS,
+      [SOURCE_IDS.DIM_DATE]: SOURCE_NAMES.DIMENSIONS,
+      [SOURCE_IDS.FACT_ORDERS]: SOURCE_NAMES.FACTS,
+      [SOURCE_IDS.FACT_ORDER_ITEMS]: SOURCE_NAMES.FACTS,
+      [SOURCE_IDS.ETL_BATCH_CONTROL]: SOURCE_NAMES.CONTROL
+    };
+
+    const table_names: { [id: string]: string } = {
+      [SOURCE_IDS.STAGING_ORDERS]: TABLE_NAMES.STAGING_ORDERS,
+      [SOURCE_IDS.STAGING_ORDER_ITEMS]: TABLE_NAMES.STAGING_ORDER_ITEMS,
+      [SOURCE_IDS.DIM_CUSTOMERS]: TABLE_NAMES.DIM_CUSTOMERS,
+      [SOURCE_IDS.DIM_PRODUCTS]: TABLE_NAMES.DIM_PRODUCTS,
+      [SOURCE_IDS.DIM_DATE]: TABLE_NAMES.DIM_DATE,
+      [SOURCE_IDS.FACT_ORDERS]: TABLE_NAMES.FACT_ORDERS,
+      [SOURCE_IDS.FACT_ORDER_ITEMS]: TABLE_NAMES.FACT_ORDER_ITEMS,
+      [SOURCE_IDS.ETL_BATCH_CONTROL]: TABLE_NAMES.ETL_BATCH_CONTROL
+    };
 
     return Promise.resolve({
       datafactories,
@@ -36,47 +59,54 @@ export class MockMetaDataService implements MetaDataApi {
     });
   }
 
-  async getStage1ArchMetadata(source_table_id: string, sink_table_id: string): Promise<{
-    source_table_id: string;
-    sink_table_id: string;
-    operation_type: 'insert_stage_1';
-    transformations: Transformation[];
-  }> {
+  async getTableColumns(source_id: string): Promise<TableColumn[]> {
     await new Promise(resolve => setTimeout(resolve, 150));
-    // Find a matching mock or return a default/error
-    // This simple mock returns the first one, ideally it should match source/sink if multiple exist
-    if (mockStage1ArchData.source_table_id === source_table_id && mockStage1ArchData.sink_table_id === sink_table_id) {
-      return Promise.resolve(mockStage1ArchData as any); // Cast as any to match specific operation_type literal
+    const columns = SOURCE_IDS_TO_COLUMNS[source_id];
+    return Promise.resolve(columns);
+  }
+
+
+  async getStage1ArchMetadata(source_table_id: string, sink_table_id: string): Promise<Stage1Arch> {
+    await new Promise(resolve => setTimeout(resolve, 150));
+    // Find matching Stage1 arch from ETL_ARCS
+    const stage1Arch = ETL_ARCS.find(arc =>   
+      arc.source_table_source_id === source_table_id && 
+      arc.sink_table_source_id === sink_table_id &&
+      'transformations' in arc
+    ) as Stage1Arch | undefined;
+
+    if (stage1Arch) {
+      return Promise.resolve(stage1Arch);
     }
-    // Fallback or throw error if not found
     return Promise.reject("No Stage1 Arch metadata found for the given IDs");
   }
 
-  async getUpsertArchMetadata(source_table_id: string, sink_table_id: string): Promise<{
-    source_table_id: string;
-    sink_table_id: string;
-    operation_type: 'insert_upsert';
-    primary_key: string[];
-    order_by: string[];
-  }> {
+  async getUpsertArchMetadata(source_table_id: string, sink_table_id: string): Promise<UpsertArc> {
     await new Promise(resolve => setTimeout(resolve, 150));
-    if (mockUpsertArchData.source_table_id === source_table_id && mockUpsertArchData.sink_table_id === sink_table_id) {
-      return Promise.resolve(mockUpsertArchData as any); // Cast as any for op type
+    // Find matching Upsert arch from ETL_ARCS
+    const upsertArch = ETL_ARCS.find(arc => 
+      arc.source_table_source_id === source_table_id && 
+      arc.sink_table_source_id === sink_table_id &&
+      'primary_key' in arc
+    ) as UpsertArc | undefined;
+
+    if (upsertArch) {
+      return Promise.resolve(upsertArch);
     }
     return Promise.reject("No Upsert Arch metadata found for the given IDs");
   }
 
-  async getCustomArchMetadata(source_table_id: string, sink_table_id: string): Promise<{
-    source_table_id: string;
-    sink_table_id: string;
-    operation_type: 'insert_custom';
-    records_query: string;
-    statement_type: 'insert' | 'merge';
-    custom_params: { [key: string]: string };
-  }> {
+  async getCustomArchMetadata(source_table_id: string, sink_table_id: string): Promise<CustomArc> {
     await new Promise(resolve => setTimeout(resolve, 150));
-    if (mockCustomArchData.source_table_id === source_table_id && mockCustomArchData.sink_table_id === sink_table_id) {
-      return Promise.resolve(mockCustomArchData as any); // Cast for op type
+    // Find matching Custom arch from ETL_ARCS
+    const customArch = ETL_ARCS.find(arc => 
+      arc.source_table_source_id === source_table_id && 
+      arc.sink_table_source_id === sink_table_id &&
+      'records_query' in arc
+    ) as CustomArc | undefined;
+
+    if (customArch) {
+      return Promise.resolve(customArch);
     }
     return Promise.reject("No Custom Arch metadata found for the given IDs");
   }
@@ -93,7 +123,15 @@ export class MockMetaDataService implements MetaDataApi {
   // Added method to get all tables
   async getAllTables(): Promise<{ tables: Table[] }> {
     await new Promise(resolve => setTimeout(resolve, 100));
-    return Promise.resolve({ tables: mockTables });
+    // Convert TableNode[] to Table[] by adding required fields
+    const tables: Table[] = mockTables.map(table => ({
+      ...table,
+      table_id: table.source_id,
+      row_count: 0, // Add default values for required fields
+      size_in_mb: 0,
+      last_updated: new Date(0)
+    }));
+    return Promise.resolve({ tables });
   }
   async getProjectIDs(source_ids: string[]): Promise<{
     [source_id: string]: {
@@ -120,7 +158,7 @@ export class MockMetaDataService implements MetaDataApi {
     await new Promise(resolve => setTimeout(resolve, 100));
     const datafactoryIds: { [source_id: string]: { datafactory_id: string } } = {};
     mockTables.forEach(table => {
-        if (source_ids.includes(table.source_id)) {
+      if (source_ids.includes(table.source_id)) {
         datafactoryIds[table.source_id] = { datafactory_id: table.datafactory_id };
       }
     });

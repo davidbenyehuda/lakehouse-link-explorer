@@ -5,42 +5,88 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import TablesGraph from '../components/TablesGraph';
-import { Table, ArchDetails, ArchEvent, Operation, Event as ApiEvent,AggregatedEvent, OperationType, TableFilter, TableSearch } from '@/types/api';
+import { Table, ArchDetails, OperationStatus,ArchEvent, Operation, Event as ApiEvent, AggregatedEvent, OperationType, TableFilter, TableSearch, BasicArc } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import ImportExportButtons from '../components/ImportExportButtons';
 import { ServiceFactory } from '../services/ServiceFactory';
 
-const generateArchesFromData = (operations: Operation[], apiEvents: AggregatedEvent[]): ArchDetails[] => {
-  return operations.map(op => {
-    const relatedArchEvents: ArchEvent[] = apiEvents
-      .filter(apiEvent =>
-        apiEvent.source_table_id === op.source_table_id &&
-        apiEvent.sink_table_id === op.sink_table_id &&
-        apiEvent.datafactory_id === op.datafactory_id &&
-        apiEvent.operation_type === op.operation_type
-      )
-      .map(apiEvent => ({
-        timestamp: new Date(apiEvent.event_time),
-        rows_affected: apiEvent.rows_added,
-        duration_ms: 0,
-      }));
 
-    return {
-      id: archId,
-      source: op.source_table_id,
-      target: op.sink_table_id,
-      insertion_type: op.operation_type as OperationType,
-      events: relatedArchEvents,
-      operation: op,
-    };
-  });
-};
+
+
+
 
 const Index = () => {
+  
   const [tables, setTables] = useState<Table[]>([]);
   const [arches, setArches] = useState<ArchDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  const generateArchesFromData = (operations: Operation[], apiEvents: AggregatedEvent[]): ArchDetails[] => {
+
+    const arches: ArchDetails[] = [];
+    const archesFromOperations = operations.filter(op => 
+      ['insert_stage_0', 'insert_stage_1', 'insert_upsert', 'insert_custom'].includes(op.operation_type))
+    .map(op => {
+        return {
+          source_table_source_id: op.source_table_id,
+          sink_table_source_id: op.sink_table_id,
+          source: ['insert_stage_0', 'insert_stage_1'].includes(op.operation_type) ? 'stage_0.'+op.source_table_id : op.source_table_id,
+          target: ['insert_stage_0'].includes(op.operation_type) ? 'stage_0.'+op.sink_table_id : op.sink_table_id,
+          insertion_type: op.operation_type as OperationType,
+        status: ["hold", "failure"].includes(op.status)? op.status : 'pending' as OperationStatus,
+      } 
+    }
+  );
+  const archesFromEvents = apiEvents.filter(op => 
+    ['insert_stage_0', 'insert_stage_1', 'insert_upsert', 'insert_custom'].includes(op.operation_type)).map(event => {
+    return {
+      source_table_source_id: event.source_table_id,
+      sink_table_source_id: event.sink_table_id,
+      source: ['insert_stage_0', 'insert_stage_1'].includes(event.operation_type) ? 'stage_0.'+event.source_table_id : event.source_table_id,
+      target: ['insert_stage_0'].includes(event.operation_type) ? 'stage_0.'+event.sink_table_id : event.sink_table_id,
+      insertion_type: event.operation_type as OperationType,
+      status: 'pending' as OperationStatus,
+    }
+  });
+  
+    // Create a Set to track unique arches by source and target
+    const uniqueArches = new Map<string, ArchDetails>();
+    
+    // Add arches from operations first
+    archesFromOperations.forEach(arch => {
+      const key = `${arch.source}-${arch.target}-${arch.insertion_type}`;
+      if (!uniqueArches.has(key) || arch.status != 'pending') {
+        uniqueArches.set(key, new ArchDetails(
+          arch.source_table_source_id,
+          arch.sink_table_source_id,
+          arch.source,
+          arch.target,
+          arch.insertion_type,
+          arch.status
+        ));
+      }
+    });
+  
+    // Add arches from events if not already present
+    archesFromEvents.forEach(arch => {
+      const key = `${arch.source}-${arch.target}-${arch.insertion_type}`;
+      if (!uniqueArches.has(key) || arch.status != 'pending') {
+        uniqueArches.set(key, new ArchDetails(
+          arch.source_table_source_id,
+          arch.sink_table_source_id,
+          arch.source,
+          arch.target,
+          arch.insertion_type,
+          arch.status
+        ));
+      }
+    });
+  
+    return Array.from(uniqueArches.values());
+  };
+
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -59,6 +105,7 @@ const Index = () => {
 
         const fetchedOperations = operationsResponse.operations;
         const fetchedEvents = events;
+        
 
         // Extract unique table IDs from operations and events
         const tableIds = new Set<string>();
@@ -82,7 +129,10 @@ const Index = () => {
           const sinkEvents = fetchedEvents.filter(event => 
             event.sink_table_id === source_id && event.operation_type != 'insert_stage_0'
           );
-          
+          const locked = fetchedOperations.some(op => 
+            op.sink_table_id === source_id 
+            && op.source_table_id === source_id && op.operation_type == 'wait'
+          );
           // Calculate total rows and size from sink events only
           const totalRows = sinkEvents.reduce((sum, event) => sum + event.total_rows, 0);
           const last_updated =  sinkEvents.reduce((max_date: Date | null, event) => 
@@ -90,26 +140,56 @@ const Index = () => {
 
           const totalSize = sinkEvents.reduce((sum, event) => sum + event.total_size, 0);
           
-          return {
-            source_id,
-            source_name: labelMappings.sources[source_id] || source_id,
-            datafactory_id: datafactoryData[source_id]?.datafactory_id || '',
-            project_id: projectData[source_id]?.project_id || '',
-            row_count: totalRows,
-            size_in_mb: Math.round(totalSize / (1024 * 1024)), // Convert bytes to MB
-            columns: [],
-            position: { x: 0, y: 0 },
-            query_count: 0,
-            datafactory_name:  labelMappings.datafactories[datafactoryData[source_id]?.datafactory_id] || '',
-            project_name: labelMappings.projects[projectData[source_id]?.project_id] || '',
-            table_name: labelMappings.table_names[source_id] || '',
-            last_updated: last_updated || new Date(0),
-          };
+          return new Table(
+            source_id, // table_id
+            source_id, // source_id
+            labelMappings.sources[source_id] || '', // source_name
+            datafactoryData[source_id]?.datafactory_id || '', // datafactory_id
+            labelMappings.datafactories[datafactoryData[source_id]?.datafactory_id] || '', // datafactory_name
+            projectData[source_id]?.project_id || '', // project_id
+            labelMappings.projects[projectData[source_id]?.project_id] || '', // project_name
+            labelMappings.table_names[source_id] || '', // table_name
+            totalRows, // row_count
+            Math.round(totalSize / (1024 * 1024)), // size_in_mb
+            last_updated || new Date(0), // last_updated
+            [], // columns
+            { x: 0, y: 0 }, // position
+            0, // query_count
+            undefined, // primary_key
+            undefined, // ordered_by
+            undefined, // partitioned_by
+            locked // locked
+          );
         });
 
         const generatedArches = generateArchesFromData(fetchedOperations, fetchedEvents);
 
-        setTables(fetchedTables);
+        const stage0tables: Table[] = fetchedEvents.filter(event => 
+          event.operation_type == 'insert_stage_0'
+        ).map(event => {
+          return new Table(
+            "stage_0."+event.source_table_id, // table_id
+            event.source_table_id, // source_id
+            "stage_0."+labelMappings.sources[event.source_table_id] || '', // source_name
+            datafactoryData[event.source_table_id]?.datafactory_id || '', // datafactory_id
+            labelMappings.datafactories[datafactoryData[event.source_table_id]?.datafactory_id] || '', // datafactory_name
+            projectData[event.source_table_id]?.project_id || '', // project_id
+            labelMappings.projects[projectData[event.source_table_id]?.project_id] || '', // project_name
+            "stage_0."+labelMappings.table_names[event.source_table_id] || '', // table_name
+            event.total_rows, // row_count
+            event.total_size, // size_in_mb
+            event.last_updated || new Date(0), // last_updated
+            [], // columns
+            { x: 0, y: 0 }, // position
+            0, // query_count
+            undefined, // primary_key
+            undefined, // ordered_by
+            undefined, // partitioned_by
+            false // locked
+          );
+        });
+
+        setTables([...fetchedTables, ...stage0tables]);
         setArches(generatedArches);
 
         toast({
