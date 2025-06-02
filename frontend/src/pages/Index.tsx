@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import TablesGraph from '../components/TablesGraph';
-import { Table, ArchDetails, OperationStatus,ArchEvent, Operation, Event as ApiEvent, AggregatedEvent, OperationType, TableFilter, TableSearch, BasicArc } from '@/types/api';
+import { Table, ArchDetails, OperationStatus,ArchEvent, Operation, Event as ApiEvent, AggregatedEvent, OperationType, TableFilter, TableSearch, BasicArc, FilterOptions } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import ImportExportButtons from '../components/ImportExportButtons';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { SOURCE_IDS } from '@/services/mock/MockData';
+import TableFilterBar from '../components/TableFilterBar';
 
 interface TableMappings {
   sourceToProject: { [key: string]: string };
@@ -41,6 +42,17 @@ const Index = () => {
   const metaDataService = ServiceFactory.createMetaDataService();
   const operationsManagerService = ServiceFactory.createOperationsManagerService();
   const trinoService = ServiceFactory.createTrinoService();
+  const [currentFilters, setCurrentFilters] = useState<FilterOptions>({});
+
+  // Add these useMemo hooks to calculate dataFactories and projects
+  const dataFactories = useMemo(() => {
+    return Array.from(new Set(tables.map(table => table.datafactory_id)));
+  }, [tables]);
+
+  const projects = useMemo(() => {
+    return Array.from(new Set(tables.map(table => table.project_id)));
+  }, [tables]);
+
   const generateArchesFromData = (operations: Operation[], apiEvents: AggregatedEvent[],datafactoryData: any): ArchDetails[] => {
 
     const arches: ArchDetails[] = [];
@@ -167,7 +179,7 @@ const Index = () => {
         const sourceToProject: { [key: string]: string } = {};
         const sourceToDataFactory: { [key: string]: string } = {};
         const projectToDataFactory: { [key: string]: string } = {};
-
+        
         tableIdsArray.forEach(source_id => {
           const projectId = projectData[source_id]?.project_id;
           const dataFactoryId = datafactoryData[source_id]?.datafactory_id;
@@ -325,6 +337,10 @@ const Index = () => {
     });
   }, [toast]);
 
+  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
+    setCurrentFilters(newFilters);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-graph-background">
@@ -354,6 +370,17 @@ const Index = () => {
         </div>
       </header>
 
+      <div className="bg-white border-b">
+        <div className="container mx-auto p-3">
+          <TableFilterBar
+            dataFactories={dataFactories}
+            projects={projects}
+            onFilterChange={handleFilterChange}
+            mappings={tableMappings.labelMappings}
+          />
+        </div>
+      </div>
+
       <div className="flex-grow relative overflow-hidden">
         <ReactFlowProvider>
           <TablesGraph
@@ -361,9 +388,10 @@ const Index = () => {
             arches={arches}
             onAddTable={handleAddTable}
             onAddArch={handleAddArch}
-            metadataService= {metaDataService}  // Add this
-            trinoService= {trinoService}
+            metadataService={metaDataService}
+            trinoService={trinoService}
             tableMappings={tableMappings}
+            currentFilters={currentFilters}
           />
         </ReactFlowProvider>
       </div>

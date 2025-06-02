@@ -19,7 +19,6 @@ import { Table, OperationType, Event as ApiEvent, Operation, OperationParamsType
 import TableNode from './TableNode';
 import DetailsSidebar from './DetailsSidebar';
 import TableSearch from './TableSearch';
-import TableFilterBar from './TableFilterBar';
 import CreateTableDialog from './CreateTableDialog';
 import CreateArchDialog from './CreateArchDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +49,7 @@ interface TablesGraphProps {
   metadataService: MetaDataApi;
   trinoService: TrinoApi;
   tableMappings: TableMappings;
+  currentFilters: FilterOptions;
 }
 
 const nodeTypes: NodeTypes = {
@@ -63,7 +63,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
   onAddArch,
   metadataService,
   trinoService,
-  tableMappings
+  tableMappings,
+  currentFilters
 }) => {
   // Layout configuration
   const layoutConfig = {
@@ -88,7 +89,6 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
     return date;
   });
   const [endDate, setEndDate] = useState<Date>(() => new Date());
-  const [currentFilters, setCurrentFilters] = useState<FilterOptions>({});
   const initialFitDone = useRef(false);
 
   // Use fixed dimensions for initial layout
@@ -489,18 +489,6 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
     }
   }, [tables, selectedTable, focusedTable, sourceNode, metadataService, toast]);
 
-  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
-    setFocusedTable(null);
-    if (newFilters.startDate) {
-      setStartDate(newFilters.startDate);
-    }
-    if (newFilters.endDate) {
-      setEndDate(newFilters.endDate);
-    }
-    setCurrentFilters(newFilters);
-    console.log("Filter changed:", newFilters);
-  }, []);
-
   const handleCloseSidebar = () => {
     setSelectedTable(null);
     setSelectedArch(null);
@@ -629,12 +617,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
               <div className="md:col-span-4">
-                <TableFilterBar
-                  dataFactories={dataFactories}
-                  projects={projects}
-                  onFilterChange={handleFilterChange}
-                  mappings={tableMappings.labelMappings}
-                />
+                {/* Remove TableFilterBar from here */}
               </div>
               <div className="md:col-span-1">
                 <TableSearch tables={filteredTables} onTableSelect={handleTableSelect} />
