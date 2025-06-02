@@ -633,7 +633,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
                   dataFactories={dataFactories}
                   projects={projects}
                   onFilterChange={handleFilterChange}
-                  tableMappings={tableMappings}
+                  mappings={tableMappings.labelMappings}
                 />
               </div>
               <div className="md:col-span-1">

@@ -12,12 +12,18 @@ interface TableFilterBarProps {
   dataFactories: string[];
   projects: string[];
   onFilterChange: (filters: FilterOptions) => void;
+  mappings: {
+    datafactories: { [id: string]: string };
+    projects: { [id: string]: string };
+    sources: { [id: string]: string };
+  };
 }
 
 const TableFilterBar: React.FC<TableFilterBarProps> = ({
   dataFactories,
   projects,
-  onFilterChange
+  onFilterChange,
+  mappings
 }) => {
   const [selectedDataFactory, setSelectedDataFactory] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<string>('all');
@@ -92,7 +98,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div>
-          <label className="text-xs text-gray-600 mb-1 block">Client</label>
+          <label className="text-xs text-gray-600 mb-1 block">Data Factory</label>
           <Select
             value={selectedDataFactory}
             onValueChange={(value) => setSelectedDataFactory(value)}
@@ -104,7 +110,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
               <SelectItem value="all">All Clients</SelectItem>
               {dataFactories.map((factory) => (
                 <SelectItem key={factory} value={factory}>
-                  {factory}
+                  {mappings.datafactories[factory]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -124,7 +130,7 @@ const TableFilterBar: React.FC<TableFilterBarProps> = ({
               <SelectItem value="all">All Projects</SelectItem>
               {projects.map((project) => (
                 <SelectItem key={project} value={project}>
-                  {project}
+                  {mappings.projects[project]}
                 </SelectItem>
               ))}
             </SelectContent>
