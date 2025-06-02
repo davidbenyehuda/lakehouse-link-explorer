@@ -70,7 +70,7 @@ const CreateArchDialog: React.FC<CreateArchDialogProps> = ({
       return;
     }
 
-    onArchCreate(formData);
+    onArchCreate(formData as Partial<ArchDetails>);
     setOpen(false);
   };
 

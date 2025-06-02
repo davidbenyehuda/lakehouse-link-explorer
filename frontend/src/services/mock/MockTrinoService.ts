@@ -1,10 +1,10 @@
-import { TrinoApi, TableFilter, TableSearch, Event as ApiEvent, AggregatedEvent, TableColumn } from '@/types/api';
+import { TrinoApi, TableFilter, TableSearch, Event as ApiEvent, AggregatedEvent, TableColumn, FilterOptions } from '@/types/api';
 import { MOCK_EVENTS, SOURCE_IDS_TO_COLUMNS, mockTables } from './MockData';
 import { max } from 'date-fns';
 
 export class MockTrinoService implements TrinoApi {
   async getEventsAggregation(
-    filters?: TableFilter,
+    filters?: FilterOptions,
     search?: TableSearch
   ): Promise<Array<AggregatedEvent>> {
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -29,9 +29,9 @@ export class MockTrinoService implements TrinoApi {
     if (filters.operation_type?.length) {
       filteredEvents = filteredEvents.filter(event => filters.operation_type?.includes(event.operation_type as any));
     }
-    if (filters.time_range && filters.time_range[0] && filters.time_range[1]) {
-      const startTime = new Date(filters.time_range[0]).getTime();
-      const endTime = new Date(filters.time_range[1]).getTime();
+    if (filters.startDate && filters.endDate) {
+      const startTime = new Date(filters.startDate).getTime();
+      const endTime = new Date(filters.endDate).getTime();
       filteredEvents = filteredEvents.filter(event => {
         const eventTime = new Date(event.event_time).getTime();
         return eventTime >= startTime && eventTime <= endTime;
@@ -100,11 +100,11 @@ export class MockTrinoService implements TrinoApi {
   // Added method to get all raw events
   async getAllEvents(): Promise<{ events: ApiEvent[] }> {
     await new Promise(resolve => setTimeout(resolve, 100));
-    return Promise.resolve( { events: MOCK_EVENTS } );
+    return Promise.resolve({ events: MOCK_EVENTS });
   }
 
 
-  async getEvents(filters?: TableFilter, search?: TableSearch,limit?: number): Promise<Array<ApiEvent>> {
+  async getEvents(filters?: TableFilter, search?: TableSearch, limit?: number): Promise<Array<ApiEvent>> {
     await new Promise(resolve => setTimeout(resolve, 100))
     let filteredEvents = [...MOCK_EVENTS];
     if (filters?.datafactory_id?.length) {
@@ -132,8 +132,7 @@ export class MockTrinoService implements TrinoApi {
     }
     return Promise.resolve(filteredEvents);
   }
-  async getTableColumns(table_full_name: string): Promise<TableColumn[]>
-  {
+  async getTableColumns(table_full_name: string): Promise<TableColumn[]> {
     await new Promise(resolve => setTimeout(resolve, 100));
     const table = mockTables.find(t => t.table_name === table_full_name);
     return Promise.resolve(SOURCE_IDS_TO_COLUMNS[table?.source_id]);

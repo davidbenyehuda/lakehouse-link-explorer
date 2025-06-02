@@ -1,14 +1,14 @@
-import { TableFilter, TableSearch, TrinoApi } from '@/types/api';
+import { FilterOptions, TableSearch, TrinoApi } from '@/types/api';
 import { Rows } from 'lucide-react';
 import { Trino } from 'trino-client';
 
 export class RealTrinoService implements TrinoApi {
-    private client: Trino;
-    constructor() {
-        // Empty constructor for now
-    }
+  private client: Trino;
+  constructor() {
+    // Empty constructor for now
+  }
 
-  async getEventsAggregation(filters: TableFilter, search?: TableSearch) {
+  async getEventsAggregation(filters: FilterOptions, search?: TableSearch) {
     const whereClauses = [];
     const params = [];
 
@@ -32,9 +32,9 @@ export class RealTrinoService implements TrinoApi {
       params.push(...filters.operation_type);
     }
 
-    if (filters.time_range) {
+    if (filters.startDate && filters.endDate) {
       whereClauses.push('event_time BETWEEN ? AND ?');
-      params.push(filters.time_range[0], filters.time_range[1]);
+      params.push(filters.startDate, filters.endDate);
     }
 
     if (search) {
@@ -85,8 +85,20 @@ export class RealTrinoService implements TrinoApi {
     const result = await this.client.query(query);
     const rows = [];
     for await (const queryResult of result) {
-        rows.push(queryResult);
+      rows.push(queryResult);
     }
     return rows;
+  }
+
+  async getAllEvents() {
+    return { events: [] };
+  }
+
+  async getEvents(filters?: FilterOptions, search?: TableSearch, limit?: number) {
+    return [];
+  }
+
+  async getTableColumns(table_full_name: string) {
+    return [];
   }
 } 

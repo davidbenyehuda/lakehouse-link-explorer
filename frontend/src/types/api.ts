@@ -12,87 +12,58 @@ export interface TableNode {
 }
 
 export interface Event { // should describe changes in a given table from a given operation on a given table
-source_table_id: string;
-sink_table_id: string;
-datafactory_id: string;
-operation_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
-batch_id: number; // timestamp in nanoseconds
-operation_type: string; // insert_stage_0, insert_stage_1, insert_upsert, insert_custom
-params_type: string; // batches, time_range
-params?: {[key: string]: string | number}; // params of the operation
-batches: string[]; // array of batch ids
-rows_added: number; // number of rows added
-bytes_added: number; // number of bytes added
-event_time: Date; // timestamp of the event
-finished_time?: Date; // timestamp of the event
-start_time?: Date; // timestamp of the event
+  source_table_id: string;
+  sink_table_id: string;
+  datafactory_id: string;
+  operation_id: string; // uuid (e.g "a1c1b2d3-e4f5-6789-a1c1-b2d3e4f5g6h7")
+  batch_id: number; // timestamp in nanoseconds
+  operation_type: string; // insert_stage_0, insert_stage_1, insert_upsert, insert_custom
+  params_type: string; // batches, time_range
+  params?: { [key: string]: string | number }; // params of the operation
+  batches: string[]; // array of batch ids
+  rows_added: number; // number of rows added
+  bytes_added: number; // number of bytes added
+  event_time: Date; // timestamp of the event
+  finished_time?: Date; // timestamp of the event
+  start_time?: Date; // timestamp of the event
 }
 export interface Operation {
-source_table_id: string;
-sink_table_id: string;
-datafactory_id: string;
-operation_type: OperationType;
-is_running: boolean;
-status: OperationStatus;
-params_type: OperationParamsType;
-created_at: Date;
-last_update_time: Date;
+  source_table_id: string;
+  sink_table_id: string;
+  datafactory_id: string;
+  operation_type: OperationType;
+  is_running: boolean;
+  status: OperationStatus;
+  params_type: OperationParamsType;
+  created_at: Date;
+  last_update_time: Date;
 }
 
-
-
+// Ensure OperationType is a string literal union
 export type OperationType = 'insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom' | 'wait';
 export type OperationStatus = 'pending' | 'in_progress' | 'failure' | 'hold' | 'empty';
 export type OperationParamsType = 'batch_ids' | 'time_range';
+
 export interface BasicArc {
-id?: string;
-source_table_source_id: string;
-sink_table_source_id: string;
-arch_type: OperationType;
-status?: OperationStatus;
+  id?: string;
+  source_table_source_id: string;
+  sink_table_source_id: string;
+  arch_type: OperationType; // This should now correctly refer to the string literal union
+  status?: OperationStatus;
 }
 
 export interface UpsertArc extends BasicArc {
-primary_key: string[];
-order_by: string[];
-arch_type: 'insert_upsert';
+  primary_key: string[];
+  order_by: string[];
+  arch_type: 'insert_upsert'; // This is compatible with OperationType
 }
 
 export interface CustomArc extends BasicArc {
-records_query: string;
-statement_type: 'insert' | 'merge';
-custom_params?: { [key: string]: string };
-arch_type: 'insert_custom';
+  records_query: string;
+  statement_type: 'insert' | 'merge';
+  custom_params?: { [key: string]: string };
+  arch_type: 'insert_custom'; // This is compatible with OperationType
 }
-
-export interface Transformation {
-field_name: string;
-function_name: string;
-params: { name: string; type: string; value: string }[];
-transformation_type:  'replace' | 'add';
-}
-
-
-export interface Stage1Arch extends BasicArc {
-transformations: Transformation[];
-arch_type: 'insert_stage_1';
-}
-export interface Stage0Arch extends BasicArc {
-arch_type: 'insert_stage_0'; 
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export interface Transformation {
   field_name: string;
@@ -101,8 +72,17 @@ export interface Transformation {
   transformation_type: 'replace' | 'add';
 }
 
+export interface Stage1Arch extends BasicArc {
+  transformations: Transformation[];
+  arch_type: 'insert_stage_1'; // This is compatible with OperationType
+}
+
+export interface Stage0Arch extends BasicArc {
+  arch_type: 'insert_stage_0'; // This is compatible with OperationType
+}
+
 export interface MetaDataApi {
-  getArchMetadata(source_table_source_id: string, sink_table_source_id: string, arch_type: OperationType,statement_type?: 'insert' | 'merge'): {};
+  getArchMetadata(source_table_source_id: string, sink_table_source_id: string, arch_type: OperationType, statement_type?: 'insert' | 'merge'): {};
   getLabelMappings(): Promise<{
     datafactories: { [id: string]: string };
     projects: { [id: string]: string };
@@ -112,13 +92,11 @@ export interface MetaDataApi {
 
   getTableColumns(source_id: string): Promise<TableColumn[]>;
 
-
-
   getStage1ArchMetadata(source_table_id: string, sink_table_id: string): Promise<Stage1Arch>;
 
   getUpsertArchMetadata(source_table_id: string, sink_table_id: string): Promise<UpsertArc>;
 
-  getCustomArchMetadata(source_table_id: string, sink_table_id: string,statement_type?: 'insert' | 'merge'): Promise<CustomArc>;
+  getCustomArchMetadata(source_table_id: string, sink_table_id: string, statement_type?: 'insert' | 'merge'): Promise<CustomArc>;
 
   getProjectIDs(source_ids: string[]): Promise<{
     [source_id: string]: {
@@ -135,9 +113,6 @@ export interface MetaDataApi {
   }>;
 }
 
-
-
-
 export interface OperationsManagerApi {
   getActiveOperations(): Promise<{
     operations: Operation[];
@@ -148,21 +123,16 @@ export interface OperationsManagerApi {
 
 export interface AggregatedEvent { // should describe changes in a given table from a given operation on a given table
   source_table_id: string;
-    sink_table_id: string;
-    datafactory_id: string;
-    operation_type: string;
-    params_type: string;
-    total_rows: number;
-    total_size: number;
-    batches_count: number;
-    events_count: number;
-    last_updated: Date;
+  sink_table_id: string;
+  datafactory_id: string;
+  operation_type: string;
+  params_type: string;
+  total_rows: number;
+  total_size: number;
+  batches_count: number;
+  events_count: number;
+  last_updated: Date;
 }
-
-
-
-
-
 
 export class Table {
   constructor(
@@ -186,7 +156,7 @@ export class Table {
     public locked?: boolean,
     public insertion_type?: OperationType,
     public df_table?: boolean
-  ) {}
+  ) { }
 
   static fromBasicInfo(
     table_id: string,
@@ -223,38 +193,38 @@ export class Table {
     );
   }
   is_stage_0(): boolean {
-   return this.source_name.includes('stage_0');
+    return this.source_name.includes('stage_0');
   }
   is_datafactory_table(): boolean {
     return this.df_table;
   }
-  
 }
 
 export class TableColumn {
   constructor(
     public name: string,
-    public type: string 
-  ) {}
+    public type: string
+  ) { }
 }
-
 
 export interface TableColumn {
-     name: string,
-     type: string 
+  name: string,
+  type: string
 }
 
-
-export interface TableFilter {
-  datafactory_id?: string[];
-  project_id?: string[];
+// This is the primary filter type to be used
+export interface FilterOptions {
+  datafactory_id?: string[]; // Changed to string[]
+  project_id?: string[];     // Changed to string[]
+  startDate?: Date;
+  endDate?: Date;
+  locked?: boolean;
+  archStatus?: OperationStatus[];
   source_id?: string[];
   sink_id?: string[];
-  operation_type?: OperationType[];
-  time_range?: [Date, Date];
+  operation_type?: OperationType[]; // Uses the corrected OperationType
   params_type?: OperationParamsType[];
   operation_status?: OperationStatus[];
-  locked?: boolean;
 }
 
 export interface TableSearch {
@@ -263,11 +233,12 @@ export interface TableSearch {
 }
 
 export interface TrinoApi {
-  getEventsAggregation(filters?: TableFilter, search?: TableSearch): Promise<Array<AggregatedEvent>>;
+  getEventsAggregation(filters?: FilterOptions, search?: TableSearch): Promise<Array<AggregatedEvent>>;
   getAllEvents(): Promise<{ events: Event[] }>;
-  getEvents(filters?: TableFilter, search?: TableSearch,limit?: number): Promise<Array<Event>>;
+  getEvents(filters?: FilterOptions, search?: TableSearch, limit?: number): Promise<Array<Event>>;
   getTableColumns(table_full_name: string): Promise<TableColumn[]>;
 }
+
 export interface ArchEvent {
   timestamp: Date;
   params_type: OperationParamsType;
@@ -277,10 +248,6 @@ export interface ArchEvent {
   rows_affected: number;
   duration_ms: number; // Made required as per linter error for DetailsSidebar
 }
-
-
-
-
 
 export class ArchDetails {
   add_metadata(archmetadata: {}) {
@@ -313,9 +280,10 @@ export class ArchDetails {
     public order_by?: string,
     public merge_statement?: 'insert' | 'merge',
     public sql_query?: string,
-    public transformations?: Transformation[]
-  ) {}
-  
+    public transformations?: Transformation[],
+    public events_date_range?: { start?: Date; end?: Date }
+  ) { }
+
   is_active(): boolean {
     return ['pending', 'in_progress'].includes(this.status);
   }
@@ -325,13 +293,3 @@ export class ArchDetails {
   }
 }
 
-
-export interface FilterOptions {
-  datafactory_id?: string | string[];
-  project_id?: string | string[];
-  startDate?: Date;
-  endDate?: Date;
-  locked?: boolean;
-  archStatus?: OperationStatus[];
-  paramsType?: OperationParamsType[];
-}
