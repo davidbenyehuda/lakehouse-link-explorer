@@ -749,7 +749,7 @@ export const MOCK_OPERATIONS: Operation[] = [
   // Table locked upsert operation
   // Wait operation with same source/sink as upsert
   {
-    source_table_id: SOURCE_IDS.STAGING_ORDERS,
+    source_table_id:  SOURCE_IDS.DIM_CUSTOMERS,
     sink_table_id: SOURCE_IDS.DIM_CUSTOMERS,
     datafactory_id: DATAFACTORY.ID,
     operation_type: 'wait',

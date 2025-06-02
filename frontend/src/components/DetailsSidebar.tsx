@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table as TableType, ArchDetails } from "../types/api";
-import { ExternalLink, RefreshCw, ArrowUpDown as SyncIcon, Database, X } from 'lucide-react';
+import { ExternalLink, RefreshCw, ArrowUpDown as SyncIcon, Database, X, Lock } from 'lucide-react';
 
 interface DetailsSidebarProps {
   selectedTable?: TableType | null;
@@ -63,9 +62,17 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
       <div className="h-full flex flex-col">
         <div className="p-4 border-b flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">{selectedTable.source_id}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">{selectedTable.source_name}</h2>
+              {selectedTable.locked && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded-md">
+                  <Lock size={16} />
+                  <span className="text-sm font-medium">Locked</span>
+                </div>
+              )}
+            </div>
             <p className="text-sm text-gray-500">
-              Client: {selectedTable.datafactory_id} • Project: {selectedTable.project_id}
+              Datafactory: {selectedTable.datafactory_name} • Project: {selectedTable.project_name}
             </p>
           </div>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -84,15 +91,18 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
             <TabsContent value="overview" className="p-4 space-y-4 h-full">
               <div>
                 <h4 className="text-sm font-medium mb-2">Table Information</h4>
+                <div className='text-sm text-gray-500'> locked: {selectedTable.locked ? 'true' : 'false'}</div>
                 <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 p-3 rounded-md">
+                <div className="font-medium">Table name:</div>
+                <div>{selectedTable.table_name}</div>
                   <div className="font-medium">Source ID:</div>
                   <div>{selectedTable.source_id}</div>
                   <div className="font-medium">Row Count:</div>
                   <div>{selectedTable.row_count.toLocaleString()}</div>
                   <div className="font-medium">Size:</div>
                   <div>{selectedTable.size_in_mb} MB</div>
-                  <div className="font-medium">Last Accessed:</div>
-                  <div>{selectedTable.last_accessed ? formatDate(selectedTable.last_accessed) : 'N/A'}</div>
+                  <div className="font-medium">Last Updated:</div>
+                  <div>{selectedTable.last_updated ? formatDate(selectedTable.last_updated) : 'N/A'}</div>
                   <div className="font-medium">Query Count:</div>
                   <div>{selectedTable.query_count || 'N/A'}</div>
                 </div>
@@ -291,6 +301,35 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
     }
   };
 
+  const getInsertionStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge className="bg-[#4361ee]">active</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-[#4cc9f0]">active</Badge>;
+      case 'empty':
+        return <Badge className="bg-[#4361ee]">empty</Badge>;
+      case 'failure':
+        return <Badge className="bg-[#f72585] text-white">Failure</Badge>;
+      case 'hold':
+        return <Badge className="bg-[#4361ee] text-white">hold</Badge>;
+     
+      default:
+        return <Badge>Unknown</Badge>;
+    }
+  };
+
+  const getInvestigationUrl = (archDetails: ArchDetails) => {
+    const params = new URLSearchParams({
+      source: archDetails.source,
+      target: archDetails.target,
+      insertion_type: archDetails.insertion_type,
+      status: archDetails.status,
+      id: archDetails.id.toString()
+    });
+    return `/investigation?${params.toString()}`;
+  };
+
   const renderArchDetails = () => {
     if (!selectedArch) return null;
 
@@ -336,6 +375,7 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="sql">SQL</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
+            <TabsTrigger value="actions">Actions</TabsTrigger>
           </TabsList>
 
           <div className="flex-grow overflow-y-auto">
@@ -343,6 +383,22 @@ const DetailsSidebar: React.FC<DetailsSidebarProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Insertion Type:</span>
                 {getInsertionTypeBadge(selectedArch.insertion_type)}
+              </div>
+              <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Status:</span>
+                <div className="flex items-center gap-2">
+                  {getInsertionStatusBadge(selectedArch.status)}
+                  {selectedArch.status === 'failure' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => window.open(getInvestigationUrl(selectedArch), '_blank')}
+                    >
+                      Investigate
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div>

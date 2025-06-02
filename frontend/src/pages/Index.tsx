@@ -9,19 +9,38 @@ import { Table, ArchDetails, OperationStatus,ArchEvent, Operation, Event as ApiE
 import { useToast } from '@/hooks/use-toast';
 import ImportExportButtons from '../components/ImportExportButtons';
 import { ServiceFactory } from '../services/ServiceFactory';
+import { SOURCE_IDS } from '@/services/mock/MockData';
 
+interface TableMappings {
+  sourceToProject: { [key: string]: string };
+  sourceToDataFactory: { [key: string]: string };
+  projectToDataFactory: { [key: string]: string };
+  labelMappings: {
+    datafactories: { [id: string]: string };
+    projects: { [id: string]: string };
+    sources: { [id: string]: string };
 
-
-
-
+}};
 
 const Index = () => {
   
   const [tables, setTables] = useState<Table[]>([]);
   const [arches, setArches] = useState<ArchDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [tableMappings, setTableMappings] = useState<TableMappings>({
+    sourceToProject: {},
+    sourceToDataFactory: {},
+    projectToDataFactory: {},
+    labelMappings: {
+      datafactories: {},
+      projects: {},
+      sources: {}
+    }
+  });
   const { toast } = useToast();
-
+  const metaDataService = ServiceFactory.createMetaDataService();
+  const operationsManagerService = ServiceFactory.createOperationsManagerService();
+  const trinoService = ServiceFactory.createTrinoService();
   const generateArchesFromData = (operations: Operation[], apiEvents: AggregatedEvent[],datafactoryData: any): ArchDetails[] => {
 
     const arches: ArchDetails[] = [];
@@ -34,7 +53,7 @@ const Index = () => {
           source: ['insert_stage_1'].includes(op.operation_type) ? 'stage_0.'+op.source_table_id : op.source_table_id,
           target: op.sink_table_id,
           insertion_type: op.operation_type as OperationType,
-        status: ["hold", "failure"].includes(op.status)? op.status : 'pending' as OperationStatus,
+        status: ["hold", "failure"].includes(op.status)? op.status : op.status as OperationStatus,
       } 
     }
   );
@@ -48,7 +67,7 @@ const Index = () => {
         source: datafactoryData[event.source_table_id]?.datafactory_id || '',
         target: 'stage_0.'+event.source_table_id,
         insertion_type: event.operation_type as OperationType,
-        status: 'pending' as OperationStatus,
+        status: 'empty' as OperationStatus,
       }
     
     }
@@ -59,7 +78,7 @@ const Index = () => {
       source: 'stage_0.'+event.source_table_id,
       target: event.sink_table_id,
       insertion_type: event.operation_type as OperationType,
-      status: 'pending' as OperationStatus,
+      status: 'empty' as OperationStatus,
     }
   }
   else {
@@ -79,7 +98,7 @@ const Index = () => {
     // Add arches from operations first
     archesFromOperations.forEach(arch => {
       const key = `${arch.source}-${arch.target}-${arch.insertion_type}`;
-      if (!uniqueArches.has(key) || arch.status != 'pending') {
+      if (!uniqueArches.has(key) || arch.status != 'empty') {
         uniqueArches.set(key, new ArchDetails(
           arch.source_table_source_id,
           arch.sink_table_source_id,
@@ -94,7 +113,7 @@ const Index = () => {
     // Add arches from events if not already present
     archesFromEvents.forEach(arch => {
       const key = `${arch.source}-${arch.target}-${arch.insertion_type}`;
-      if (!uniqueArches.has(key) || arch.status != 'pending') {
+      if (!uniqueArches.has(key) || arch.status != 'empty') {
         uniqueArches.set(key, new ArchDetails(
           arch.source_table_source_id,
           arch.sink_table_source_id,
@@ -115,9 +134,7 @@ const Index = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const metaDataService = ServiceFactory.createMetaDataService();
-        const operationsManagerService = ServiceFactory.createOperationsManagerService();
-        const trinoService = ServiceFactory.createTrinoService();
+        
 
         // Get operations and events first
         const operationsResponse = await operationsManagerService.getActiveOperations();
@@ -145,6 +162,37 @@ const Index = () => {
         const tableIdsArray = Array.from(tableIds);
         const projectData = await metaDataService.getProjectIDs(tableIdsArray);
         const datafactoryData = await metaDataService.getDatafactoryIDs(tableIdsArray);
+
+        // Create mappings
+        const sourceToProject: { [key: string]: string } = {};
+        const sourceToDataFactory: { [key: string]: string } = {};
+        const projectToDataFactory: { [key: string]: string } = {};
+
+        tableIdsArray.forEach(source_id => {
+          const projectId = projectData[source_id]?.project_id;
+          const dataFactoryId = datafactoryData[source_id]?.datafactory_id;
+
+          if (projectId) {
+            sourceToProject[source_id] = projectId;
+            if (dataFactoryId) {
+              projectToDataFactory[projectId] = dataFactoryId;
+            }
+          }
+          if (dataFactoryId) {
+            sourceToDataFactory[source_id] = dataFactoryId;
+          }
+        });
+
+        setTableMappings({
+          sourceToProject,
+          sourceToDataFactory,
+          projectToDataFactory,
+          labelMappings: {
+            datafactories: labelMappings.datafactories,
+            projects: labelMappings.projects,
+            sources: labelMappings.sources
+          }
+        });
 
         // Create table objects from the IDs using label mappings
         const fetchedTables: Table[] = tableIdsArray.map(source_id => {
@@ -313,6 +361,9 @@ const Index = () => {
             arches={arches}
             onAddTable={handleAddTable}
             onAddArch={handleAddArch}
+            metadataService= {metaDataService}  // Add this
+            trinoService= {trinoService}
+            tableMappings={tableMappings}
           />
         </ReactFlowProvider>
       </div>

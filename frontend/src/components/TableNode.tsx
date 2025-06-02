@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Table } from '@/types/api';
-import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { ExternalLink, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 
 interface TableNodeProps {
   data: {
     table: Table;
     isFocused?: boolean;
+    isLocked?: boolean;
   };
   selected?: boolean;
   id: string;
 }
 
 const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
-  const { table, isFocused } = data;
+  const { table, isFocused, isLocked } = data;
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Calculate background color based on datafactory_id for visual grouping
   const getBackgroundColor = () => {
+    if (isLocked) {
+      return '#f3f4f6'; // Light gray background for locked tables
+    }
     const colors = ['#c9e4de', '#d1e9ea', '#d6efee', '#e0f5f2', '#eaf8f6'];
     const colorIndex = parseInt(table.datafactory_id.split('_')[1]) % colors.length;
     return colors[colorIndex];
@@ -25,7 +29,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
 
   return (
     <div
-      className={`table-node bg-white p-2 border rounded-lg shadow-md w-[180px] cursor-grab active:cursor-grabbing ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
+      className={`table-node bg-white p-2 border rounded-lg shadow-md min-w-[180px] max-w-[300px] cursor-grab active:cursor-grabbing ${selected ? 'ring-2 ring-graph-accent1' : ''} ${isFocused ? 'ring-2 ring-blue-500' : ''} ${isLocked ? 'border-gray-400' : ''}`}
       style={{ backgroundColor: getBackgroundColor() }}
     >
       <Handle
@@ -42,13 +46,16 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
       />
 
       <div className="table-node__header text-graph-text font-semibold text-sm flex justify-between items-center">
-        <div className="truncate">{table.table_name}</div>
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          {isLocked && <Lock size={14} className="text-gray-500 flex-shrink-0" />}
+          <div className="truncate whitespace-nowrap">{table.source_name}</div>
+        </div>
         <button
           onClick={(e) => {
             e.stopPropagation(); // Prevent node selection when toggling expand
             setIsExpanded(!isExpanded);
           }}
-          className="text-gray-500 hover:text-gray-700 ml-2"
+          className="text-gray-500 hover:text-gray-700 ml-2 flex-shrink-0"
         >
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
@@ -66,6 +73,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
       {isExpanded && (
         <div className="table-node__content mt-2">
           <div className="text-xs text-gray-600 mb-1">
+            <div className="font-mono text-gray-500 mb-1">{table.table_name}</div>
             <span>Client: {table.datafactory_id}</span>
             <span className="mx-2">•</span>
             <span>Project: {table.project_id}</span>

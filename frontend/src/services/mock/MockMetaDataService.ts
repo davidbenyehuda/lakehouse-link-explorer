@@ -61,7 +61,7 @@ export class MockMetaDataService implements MetaDataApi {
 
   async getTableColumns(source_id: string): Promise<TableColumn[]> {
     await new Promise(resolve => setTimeout(resolve, 150));
-    const columns = SOURCE_IDS_TO_COLUMNS[source_id];
+    const columns = SOURCE_IDS_TO_COLUMNS.get(source_id);
     return Promise.resolve(columns);
   }
 
@@ -96,7 +96,7 @@ export class MockMetaDataService implements MetaDataApi {
     return Promise.reject("No Upsert Arch metadata found for the given IDs");
   }
 
-  async getCustomArchMetadata(source_table_id: string, sink_table_id: string): Promise<CustomArc> {
+  async getCustomArchMetadata(source_table_id: string, sink_table_id: string,statement_type?: 'insert' | 'merge'): Promise<CustomArc> {
     await new Promise(resolve => setTimeout(resolve, 150));
     // Find matching Custom arch from ETL_ARCS
     const customArch = ETL_ARCS.find(arc => 
@@ -109,6 +109,22 @@ export class MockMetaDataService implements MetaDataApi {
       return Promise.resolve(customArch);
     }
     return Promise.reject("No Custom Arch metadata found for the given IDs");
+  }
+
+  async getArchMetadata(source_table_source_id: string, sink_table_source_id: string,
+     arch_type: OperationType,statement_type?: 'insert' | 'merge'): Promise<{}> {
+    if (arch_type === 'insert_stage_0') {
+      return {}
+    }
+    if (arch_type === 'insert_stage_1') {
+      return this.getStage1ArchMetadata(source_table_source_id, sink_table_source_id);
+    }
+    if (arch_type === 'insert_upsert') {
+      return this.getUpsertArchMetadata(source_table_source_id, sink_table_source_id);
+    }
+    if (arch_type === 'insert_custom') {
+      return this.getCustomArchMetadata(source_table_source_id, sink_table_source_id,statement_type);
+    }
   }
 
   async getTableMetadata(tableId: string): Promise<{ full_name: string; /* other metadata */ }> {

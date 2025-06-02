@@ -104,7 +104,7 @@ export class MockTrinoService implements TrinoApi {
   }
 
 
-  async getEvents(filters?: TableFilter, search?: TableSearch): Promise<Array<ApiEvent>> {
+  async getEvents(filters?: TableFilter, search?: TableSearch,limit?: number): Promise<Array<ApiEvent>> {
     await new Promise(resolve => setTimeout(resolve, 100))
     let filteredEvents = [...MOCK_EVENTS];
     if (filters?.datafactory_id?.length) {
@@ -126,6 +126,9 @@ export class MockTrinoService implements TrinoApi {
         const eventTime = new Date(event.event_time).getTime();
         return eventTime >= startTime && eventTime <= endTime;
       });
+    }
+    if (limit) {
+      filteredEvents = filteredEvents.slice(0, limit);
     }
     return Promise.resolve(filteredEvents);
   }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { Table, OperationType, Event as ApiEvent, Operation, ArchDetails, ArchEvent } from '@/types/api';
+import { Table, OperationType, Event as ApiEvent, Operation, OperationParamsType, ArchDetails, ArchEvent, MetaDataApi, TrinoApi, FilterOptions } from '@/types/api';
 import TableNode from './TableNode';
 import DetailsSidebar from './DetailsSidebar';
 import TableSearch from './TableSearch';
@@ -29,12 +29,27 @@ import {
   ResizablePanel,
   ResizableHandle
 } from '@/components/ui/resizable';
+import { config } from 'process';
+
+interface TableMappings {
+  sourceToProject: { [key: string]: string };
+  sourceToDataFactory: { [key: string]: string };
+  projectToDataFactory: { [key: string]: string };
+  labelMappings: {
+    datafactories: { [id: string]: string };
+    projects: { [id: string]: string };
+    sources: { [id: string]: string };
+  };
+}
 
 interface TablesGraphProps {
   tables: Table[];
   arches: ArchDetails[];
   onAddTable?: (newTable: Table, newArch?: ArchDetails) => void;
   onAddArch?: (newArch: ArchDetails) => void;
+  metadataService: MetaDataApi;
+  trinoService: TrinoApi;
+  tableMappings: TableMappings;
 }
 
 const nodeTypes: NodeTypes = {
@@ -45,8 +60,21 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
   tables,
   arches,
   onAddTable,
-  onAddArch
+  onAddArch,
+  metadataService,
+  trinoService,
+  tableMappings
 }) => {
+  // Layout configuration
+  const layoutConfig = {
+    horizontalSpacing: 0.15,  // 15% of screen width between depth levels
+    verticalSpacing: 0.2,     // 20% of screen height between nodes
+    startX: 0.1,             // Start at 10% from left
+    startY: 0.1,             // Start at 10% from top
+    maxWidth: 0.8,           // Use 80% of screen width
+    maxHeight: 0.8,          // Use 80% of screen height
+  };
+
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
@@ -54,7 +82,18 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
   const [focusedTable, setFocusedTable] = useState<string | null>(null);
   const [sourceNode, setSourceNode] = useState<string | null>(null);
   const [targetNode, setTargetNode] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - 1);
+    return date;
+  });
+  const [endDate, setEndDate] = useState<Date>(() => new Date());
+  const [currentFilters, setCurrentFilters] = useState<FilterOptions>({});
+  const initialFitDone = useRef(false);
 
+  // Use fixed dimensions for initial layout
+  const containerSize = { width: 2000, height: 1500 };
+  const QueryEventLimit =  import.meta.env.QueryEventLimit || 200;
   const { toast } = useToast();
   const reactFlowInstance = useReactFlow();
 
@@ -67,6 +106,9 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
   }, [tables]);
 
   const filteredTables = useMemo(() => {
+    let filtered = tables;
+
+    // Apply focus mode filter
     if (focusedTable) {
       const tableSourceId = focusedTable;
       const connectedTableSourceIds = new Set<string>();
@@ -92,193 +134,167 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
 
       findUpstream(tableSourceId);
       findDownstream(tableSourceId);
-      return tables.filter(table => connectedTableSourceIds.has(table.source_id));
+      filtered = filtered.filter(table => connectedTableSourceIds.has(table.table_id));
     }
-    return tables;
-  }, [tables, focusedTable, arches]);
+
+    // Apply datafactory filter
+    if (currentFilters.datafactory_id) {
+      const datafactoryIds = Array.isArray(currentFilters.datafactory_id) 
+        ? currentFilters.datafactory_id 
+        : [currentFilters.datafactory_id];
+      filtered = filtered.filter(table => {
+        return datafactoryIds.includes(table.datafactory_id);
+      });
+    }
+
+    // Apply project filter
+    if (currentFilters.project_id) {
+      const projectIds = Array.isArray(currentFilters.project_id) 
+        ? currentFilters.project_id 
+        : [currentFilters.project_id];
+      filtered = filtered.filter(table => {
+        if (table.is_datafactory_table()) {
+          return projectIds.some(projectId => 
+            tableMappings.projectToDataFactory[projectId] === table.datafactory_id
+          );
+        } else {
+          return projectIds.includes(table.project_id);
+        }
+      });
+    }
+
+    // Apply locked filter
+    if (currentFilters.locked !== undefined) {
+      filtered = filtered.filter(table => table.locked === currentFilters.locked);
+    }
+
+    return filtered;
+  }, [tables, focusedTable, arches, currentFilters, tableMappings]);
 
   const filteredArchIds = useMemo(() => {
-    const tableSourceIds = new Set(filteredTables.map(t => t.source_id));
-    return arches
-      .filter(arch => tableSourceIds.has(arch.source) && tableSourceIds.has(arch.target))
-      .map(arch => arch.id);
-  }, [filteredTables, arches]);
+    const tableSourceIds = new Set(filteredTables.map(t => t.table_id));
+    let filtered = arches
+      .filter(arch => tableSourceIds.has(arch.source) && tableSourceIds.has(arch.target));
+
+    // Apply arch status filter
+    if (currentFilters.archStatus && currentFilters.archStatus.length > 0) {
+      filtered = filtered.filter(arch => 
+        currentFilters.archStatus!.includes(arch.status || 'empty')
+      );
+    }
+
+    // Apply params type filter
+    if (currentFilters.paramsType && currentFilters.paramsType.length > 0) {
+      filtered = filtered.filter(arch => {
+        // Get the most recent event for this arch
+        const latestEvent = arch.events?.[0];
+        return latestEvent && currentFilters.paramsType!.includes(latestEvent.params_type);
+      });
+    }
+
+    return filtered.map(arch => arch.id);
+  }, [filteredTables, arches, currentFilters]);
 
   const positionTables = useCallback((tablesToPosition: Table[]) => {
-    const dataFactoryGroups: Record<string, Table[]> = {};
-    tablesToPosition.forEach(table => {
-      const groupKey = table.datafactory_id;
-      if (!dataFactoryGroups[groupKey]) dataFactoryGroups[groupKey] = [];
-      dataFactoryGroups[groupKey].push(table);
+    // First, find all source tables (tables that are not targets of any arch)
+    const sourceTables = tablesToPosition.filter(table => 
+      !arches.some(arch => arch.target === table.table_id)
+    );
+
+    // Create a map to store the depth of each table
+    const tableDepths = new Map<string, number>();
+    
+    // Set initial depth for source tables
+    sourceTables.forEach(table => {
+      tableDepths.set(table.table_id, 0);
     });
 
-    const positionedTables = [...tablesToPosition];
-    let factoryY = 50;
-    const verticalGapBetweenFactories = 600;
-
-    Object.values(dataFactoryGroups).forEach(factoryTables => {
-      const projectGroups: Record<string, Table[]> = {};
-      factoryTables.forEach(table => {
-        const projectKey = table.project_id;
-        if (!projectGroups[projectKey]) projectGroups[projectKey] = [];
-        projectGroups[projectKey].push(table);
-      });
-
-      let projectX = 100;
-      const horizontalGapBetweenProjects = 800;
-
-      Object.values(projectGroups).forEach(projectTables => {
-        const targetSourceIds = new Set(arches
-          .filter(a => projectTables.some(t => t.source_id === a.source))
-          .map(a => a.target)
-        );
-
-        const sourceTables = projectTables.filter(table =>
-          !targetSourceIds.has(table.table_id) ||
-          !arches.some(a => a.target === table.table_id && projectTables.some(t => t.table_id === a.source))
-        );
-
-        if (sourceTables.length === 0 && projectTables.length > 0) {
-          sourceTables.push(projectTables[0]);
-        }
-
-        let treeX = projectX;
-        const horizontalGapBetweenTrees = 400;
-
-        sourceTables.forEach(sourceTable => {
-          let currentY = factoryY;
-          const sourceTableIndex = positionedTables.findIndex(t => t.source_id === sourceTable.source_id);
-          if (sourceTableIndex !== -1) {
-            positionedTables[sourceTableIndex].position = { x: treeX, y: currentY };
-          }
-
-          const positionedIds = new Set<string>([sourceTable.source_id]);
-          const positionDownstreamTables = (tableSourceId: string, level: number, branchY: number): number => {
-            const downstreamArches = arches.filter(arch =>
-              arch.source === tableSourceId && projectTables.some(t => t.source_id === arch.target)
-            );
-            let yOffset = 0;
-            const verticalGap = 200;
-
-            downstreamArches.forEach(arch => {
-              const targetTable = projectTables.find(t => t.source_id === arch.target);
-              if (targetTable && !positionedIds.has(targetTable.source_id)) {
-                positionedIds.add(targetTable.source_id);
-                const targetY = branchY + yOffset;
-                const targetX = treeX + (level * 250);
-                const targetTableIndex = positionedTables.findIndex(t => t.source_id === targetTable.source_id);
-                if (targetTableIndex !== -1) {
-                  positionedTables[targetTableIndex].position = { x: targetX, y: targetY };
-                }
-                positionDownstreamTables(targetTable.source_id, level + 1, targetY);
-                yOffset += verticalGap;
-              }
-            });
-            return Math.max(branchY + yOffset, branchY + 100);
-          };
-          positionDownstreamTables(sourceTable.source_id, 1, currentY);
-          treeX += horizontalGapBetweenTrees;
-        });
-        projectX = treeX + horizontalGapBetweenProjects - horizontalGapBetweenTrees;
-      });
-      factoryY += verticalGapBetweenFactories;
-    });
-    return positionedTables;
-  }, [arches]);
-
-  const initializeGraph = useCallback(() => {
-    const tablesToRender = filteredTables || [];
-    const positionedTablesOutput = positionTables([...tablesToRender]);
-
-    const initialNodes: Node[] = positionedTablesOutput.map((table) => ({
-      id: table.table_id,
-      type: 'tableNode',
-      data: { table, isFocused: focusedTable === table.source_id },
-      position: table.position || { x: Math.random() * 500, y: Math.random() * 500 },
-      draggable: true,
-    }));
-
-    const archesToRender = arches || [];
-    const archIdsToRenderSet = new Set(filteredArchIds || []);
-    const initialEdges: Edge[] = archesToRender
-      .filter(arch => archIdsToRenderSet.has(arch.id))
-      .map((arch) => {
-        const archColor = getArchColor(arch.insertion_type);
-        return {
-          id: arch.get_id(),
-          source: arch.source,
-          target: arch.target,
-          animated: arch.is_active() || false,
-          style: { stroke: archColor, strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: archColor },
-          data: { ...arch },
-        };
-      });
-
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-
-    if (selectedTable && !tablesToRender.some(t => t.source_id === selectedTable.source_id)) {
-      setSelectedTable(null);
-    }
-    if (selectedArch && !archIdsToRenderSet.has(selectedArch.id)) {
-      setSelectedArch(null);
-    }
-
-    if (reactFlowInstance && initialNodes.length > 0) {
-      setTimeout(() => reactFlowInstance.fitView({ padding: 0.2 }), 100);
-    }
-  }, [
-    filteredTables,
-    arches,
-    filteredArchIds,
-    focusedTable,
-    positionTables,
-    reactFlowInstance,
-    selectedTable,
-    selectedArch,
-  ]);
-
-  useEffect(() => {
-    initializeGraph();
-  }, [initializeGraph]);
-
-  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
-    const arch = arches.find((a) => a.id === edge.id);
-    if (arch) {
-      setSelectedArch(arch);
-      setSelectedTable(null);
-      setSourceNode(null);
-      setTargetNode(null);
-    }
-  }, [arches]);
-
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    const table = tables.find((t) => t.source_id === node.id);
-    if (table) {
-      if (sourceNode && sourceNode !== node.id) {
-        setTargetNode(node.id);
-      } else {
-        setSelectedTable(table);
-        setSelectedArch(null);
-        const clickTimestamp = new Date().getTime();
-        if (selectedTable?.source_id === table.source_id) {
-          const lastClick = (table as any).lastClickTime || 0;
-          if (clickTimestamp - lastClick < 300) {
-            setFocusedTable(focusedTable === table.source_id ? null : table.source_id);
-          }
-        }
-        (table as any).lastClickTime = clickTimestamp;
+    // Function to calculate depth of a table
+    const calculateDepth = (tableId: string): number => {
+      if (tableDepths.has(tableId)) {
+        return tableDepths.get(tableId)!;
       }
+
+      // Find all arches where this table is a target
+      const incomingArches = arches.filter(arch => arch.target === tableId);
+      
+      if (incomingArches.length === 0) {
+        tableDepths.set(tableId, 0);
+        return 0;
+      }
+
+      // Calculate depth based on source tables
+      const maxSourceDepth = Math.max(
+        ...incomingArches.map(arch => calculateDepth(arch.source))
+      );
+      
+      const depth = maxSourceDepth + 1;
+      tableDepths.set(tableId, depth);
+      return depth;
+    };
+
+    // Calculate depths for all tables
+    tablesToPosition.forEach(table => {
+      calculateDepth(table.table_id);
+    });
+
+    // Find maximum depth to determine layout width
+    const maxDepth = Math.max(...Array.from(tableDepths.values()));
+    
+    // Group tables by depth
+    const tablesByDepth = new Map<number, Table[]>();
+    tablesToPosition.forEach(table => {
+      const depth = tableDepths.get(table.table_id)!;
+      if (!tablesByDepth.has(depth)) {
+        tablesByDepth.set(depth, []);
+      }
+      tablesByDepth.get(depth)!.push(table);
+    });
+
+    // Position tables
+    const positionedTables = [...tablesToPosition];
+    
+    // Calculate available space in pixels
+    const availableWidth = containerSize.width * layoutConfig.maxWidth;
+    const availableHeight = containerSize.height * layoutConfig.maxHeight;
+    
+    // Calculate starting positions in pixels
+    const startXPixels = containerSize.width * layoutConfig.startX;
+    const startYPixels = containerSize.height * layoutConfig.startY;
+    
+    // Calculate horizontal spacing between depth levels in pixels
+    const horizontalGap = availableWidth / (maxDepth + 1);
+    
+    // Position tables for each depth
+    tablesByDepth.forEach((tables, depth) => {
+      // Calculate x position in pixels
+      const x = startXPixels + (depth * horizontalGap);
+      
+      // Calculate vertical spacing for this depth level in pixels
+      const verticalGap = availableHeight / (tables.length + 1);
+      
+      // Position tables at this depth vertically
+      tables.forEach((table, index) => {
+        // Calculate y position in pixels
+        const y = startYPixels + (index * verticalGap);
+        
+        const tableIndex = positionedTables.findIndex(t => t.table_id === table.table_id);
+        if (tableIndex !== -1) {
+          positionedTables[tableIndex].position = { x, y };
+        }
+      });
+    });
+
+    return positionedTables;
+  }, [arches, layoutConfig]);
+
+  const getArchColor = (insertionType: OperationType | string, status?: string): string => {
+    if (status === 'failure') {
+      return '#000000'; // Black color for failure
     }
-  }, [tables, selectedTable, focusedTable, sourceNode]);
-
-  const handleFilterChange = useCallback((newFilters: any) => {
-    setFocusedTable(null);
-    console.log("Filter changed (not implemented yet):", newFilters);
-  }, []);
-
-  const getArchColor = (insertionType: OperationType | string): string => {
+    if (status === 'locked') {
+      return '#000000'; // Black color for locked
+    }
     switch (insertionType) {
       case 'insert_stage_0': return '#4361ee';
       case 'insert_stage_1': return '#4cc9f0';
@@ -288,13 +304,210 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
     }
   };
 
+  const initializeGraph = useCallback(() => {
+    console.log("Initializing graph structure");
+    const tablesToRender = filteredTables || [];
+    const positionedTablesOutput = positionTables([...tablesToRender]);
+
+    const initialNodes: Node[] = positionedTablesOutput.map((table) => ({
+      id: table.table_id,
+      type: 'tableNode',
+      data: { 
+        table, 
+        isFocused: focusedTable === table.source_id,
+        isLocked: table.locked 
+      },
+      position: table.position || { x: Math.random() * 500, y: Math.random() * 500 },
+      draggable: true,
+    }));
+
+    const archesToRender = arches || [];
+    const archIdsToRenderSet = new Set(filteredArchIds || []);
+    const initialEdges: Edge[] = archesToRender
+      .filter(arch => archIdsToRenderSet.has(arch.id))
+      .map((arch) => {
+        const archColor = getArchColor(arch.insertion_type, arch.status);
+        return {
+          id: arch.get_id(),
+          source: arch.source,
+          target: arch.target,
+          animated: arch.is_active() || false,
+          style: { 
+            stroke: archColor, 
+            strokeWidth: 2
+          },
+          markerEnd: { 
+            type: MarkerType.ArrowClosed, 
+            width: arch.status === 'failure' ? 25 : 15, 
+            height: arch.status === 'failure' ? 25 : 15, 
+            color: archColor 
+          },
+          data: { ...arch },
+          selectable: true,
+          interactionWidth: 20,
+        };
+      });
+
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    initialFitDone.current = false;
+
+    if (selectedTable && !tablesToRender.some(t => t.source_id === selectedTable.source_id)) {
+      setSelectedTable(null);
+    }
+    if (selectedArch && !archIdsToRenderSet.has(selectedArch.id)) {
+      setSelectedArch(null);
+    }
+  }, [
+    filteredTables,
+    arches,
+    filteredArchIds,
+    focusedTable,
+    positionTables,
+    selectedTable,
+    selectedArch,
+  ]);
+
+  const handleNodesChange = useCallback((changes: any) => {
+    // Only update positions, don't trigger reinitialization
+    onNodesChange(changes);
+  }, [onNodesChange]);
+
+  useEffect(() => {
+    const shouldInitialize = 
+      filteredTables.length > 0 || 
+      arches.length > 0 || 
+      focusedTable !== null || 
+      selectedTable !== null || 
+      selectedArch !== null;
+
+    if (shouldInitialize) {
+      console.log("Effect triggered - initializing graph structure");
+      initializeGraph();
+    }
+  }, [
+    filteredTables,
+    arches,
+    filteredArchIds,
+    focusedTable,
+    selectedTable,
+    selectedArch,
+  ]);
+
+  // Single effect for initial fit view that only runs once
+  useEffect(() => {
+    if (!initialFitDone.current && reactFlowInstance && nodes.length > 0) {
+      console.log("Nodes ready for fit view:", nodes.length);
+      const timer = setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.2, duration: 800 });
+        initialFitDone.current = true;
+        console.log("Initial fit view completed");
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [reactFlowInstance, nodes.length]);
+
+  const onEdgeClick = useCallback(async (event: React.MouseEvent, edge: Edge) => {
+    event.stopPropagation();
+    console.log("Edge clicked:", edge.id);
+    const arch = arches.find((a) => a.get_id() === edge.id);
+    console.log("Found arch:", arch);
+    
+    if (arch) {
+      try {
+        // Only fetch events if they don't exist
+        if (!arch.events || arch.events.length === 0) {
+          const events = await trinoService.getEvents({
+            source_id: [arch.source_table_source_id],
+            sink_id: [arch.sink_table_source_id],
+            operation_type: [arch.insertion_type],
+            time_range: [startDate, endDate],
+          }, undefined, QueryEventLimit);
+          arch.events = events.map(event => ({
+            timestamp: event.event_time,
+            params_type: event.params_type as OperationParamsType,
+            batch_id: String(event.batch_id),
+            batches: event.batches,
+            rows_affected: event.rows_added,
+            duration_ms: event.finished_time && event.start_time ? 
+              new Date(event.finished_time).getTime() - new Date(event.start_time).getTime() : 
+              null,
+            bytes_added: event.bytes_added}))
+            const archmetadata= await metadataService.getArchMetadata(
+              arch.source_table_source_id, arch.sink_table_source_id,arch.insertion_type,arch.merge_statement)
+            arch.add_metadata(archmetadata)
+        }
+        setSelectedArch(arch);
+        setSelectedTable(null);
+        setSourceNode(null);
+        setTargetNode(null);
+      } catch (error) {
+        console.error('Error fetching arch events:', error);
+        toast({ 
+          variant: "destructive",
+          title: "Error", 
+          description: "Failed to fetch connection events" 
+        });
+      }
+    }
+  }, [arches, trinoService, toast]);
+
+  const onNodeClick = useCallback(async (event: React.MouseEvent, node: Node) => {
+    const table = tables.find((t) => t.table_id === node.id);
+    if (table) {
+      if (sourceNode && sourceNode !== node.id) {
+        setTargetNode(node.id);
+      } else {
+        try {
+          // Only fetch columns if they don't exist
+          if (!table.columns || table.columns.length === 0) {
+            const columns = await metadataService.getTableColumns(table.source_id);
+            table.columns = columns;
+            setSelectedTable(table);
+          }
+          setSelectedTable(table);
+          
+          
+          setSelectedArch(null);
+          const clickTimestamp = new Date().getTime();
+          if (selectedTable?.table_id === table.table_id) {
+            const lastClick = (table as any).lastClickTime || 0;
+            if (clickTimestamp - lastClick < 300) {
+              setFocusedTable(focusedTable === table.table_id ? null : table.table_id);
+            }
+          }
+          (table as any).lastClickTime = clickTimestamp;
+        } catch (error) {
+          console.error('Error fetching table columns:', error);
+          toast({ 
+            variant: "destructive",
+            title: "Error", 
+            description: "Failed to fetch table columns" 
+          });
+        }
+      }
+    }
+  }, [tables, selectedTable, focusedTable, sourceNode, metadataService, toast]);
+
+  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
+    setFocusedTable(null);
+    if (newFilters.startDate) {
+      setStartDate(newFilters.startDate);
+    }
+    if (newFilters.endDate) {
+      setEndDate(newFilters.endDate);
+    }
+    setCurrentFilters(newFilters);
+    console.log("Filter changed:", newFilters);
+  }, []);
+
   const handleCloseSidebar = () => {
     setSelectedTable(null);
     setSelectedArch(null);
   };
 
   const handleTableSelect = (tableSourceId: string) => {
-    const table = tables.find((t) => t.source_id === tableSourceId);
+    const table = tables.find((t) => t.table_id === tableSourceId);
     if (table) {
       setSelectedTable(table);
       setSelectedArch(null);
@@ -311,7 +524,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
 
   const handleSetSourceNode = () => {
     if (selectedTable) {
-      setSourceNode(selectedTable.source_id);
+      setSourceNode(selectedTable.table_id);
       setTargetNode(null);
       toast({ title: "Source Selected", description: `Table "${selectedTable.table_name}" set as source. Now select a target table.` });
     }
@@ -420,6 +633,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
                   dataFactories={dataFactories}
                   projects={projects}
                   onFilterChange={handleFilterChange}
+                  tableMappings={tableMappings}
                 />
               </div>
               <div className="md:col-span-1">
@@ -462,7 +676,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
             <ReactFlow
               nodes={nodes}
               edges={edges}
-              onNodesChange={onNodesChange}
+              onNodesChange={handleNodesChange}
               onEdgesChange={onEdgesChange}
               onEdgeClick={onEdgeClick}
               onNodeClick={onNodeClick}
@@ -472,6 +686,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
               minZoom={0.1}
               maxZoom={2.5}
               className="bg-gradient-to-br from-gray-50 to-slate-100"
+              elementsSelectable={true}
+              selectNodesOnDrag={false}
             >
               <Background color="#ddd" gap={20} size={1.5} />
               <Controls showInteractive={false} />
@@ -500,10 +716,10 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
                 </button>
               </>
             )}
-            {sourceNode && selectedTable && selectedTable.source_id === sourceNode && !targetNode && (
+            {sourceNode && selectedTable && selectedTable.table_id === sourceNode && !targetNode && (
               <span className="text-sm font-medium text-green-600">Source: <strong>{selectedTable.table_name}</strong>. Select a target table.</span>
             )}
-            {sourceNode && targetNode && selectedTable && (selectedTable.source_id === targetNode) && (
+            {sourceNode && targetNode && selectedTable && (selectedTable.table_id === targetNode) && (
               <span className="text-sm font-medium text-green-600">Target: <strong>{selectedTable.table_name}</strong>. Ready to create connection.</span>
             )}
             {(sourceNode) && (

@@ -24,6 +24,8 @@ batches: string[]; // array of batch ids
 rows_added: number; // number of rows added
 bytes_added: number; // number of bytes added
 event_time: Date; // timestamp of the event
+finished_time?: Date; // timestamp of the event
+start_time?: Date; // timestamp of the event
 }
 export interface Operation {
 source_table_id: string;
@@ -40,7 +42,7 @@ last_update_time: Date;
 
 
 export type OperationType = 'insert_stage_0' | 'insert_stage_1' | 'insert_upsert' | 'insert_custom' | 'wait';
-export type OperationStatus = 'pending' | 'in_progress' | 'failure' | 'hold';
+export type OperationStatus = 'pending' | 'in_progress' | 'failure' | 'hold' | 'empty';
 export type OperationParamsType = 'batch_ids' | 'time_range';
 export interface BasicArc {
 id?: string;
@@ -100,6 +102,7 @@ export interface Transformation {
 }
 
 export interface MetaDataApi {
+  getArchMetadata(source_table_source_id: string, sink_table_source_id: string, arch_type: OperationType,statement_type?: 'insert' | 'merge'): {};
   getLabelMappings(): Promise<{
     datafactories: { [id: string]: string };
     projects: { [id: string]: string };
@@ -115,7 +118,7 @@ export interface MetaDataApi {
 
   getUpsertArchMetadata(source_table_id: string, sink_table_id: string): Promise<UpsertArc>;
 
-  getCustomArchMetadata(source_table_id: string, sink_table_id: string): Promise<CustomArc>;
+  getCustomArchMetadata(source_table_id: string, sink_table_id: string,statement_type?: 'insert' | 'merge'): Promise<CustomArc>;
 
   getProjectIDs(source_ids: string[]): Promise<{
     [source_id: string]: {
@@ -181,7 +184,8 @@ export class Table {
     public ordered_by?: string,
     public partitioned_by?: string,
     public locked?: boolean,
-    public insertion_type?: OperationType
+    public insertion_type?: OperationType,
+    public df_table?: boolean
   ) {}
 
   static fromBasicInfo(
@@ -192,7 +196,8 @@ export class Table {
     datafactory_name: string,
     project_id: string,
     project_name: string,
-    table_name: string
+    table_name: string,
+    df_table: boolean = true
   ): Table {
     return new Table(
       table_id,
@@ -213,9 +218,17 @@ export class Table {
       undefined, // ordered_by
       undefined, // partitioned_by
       false, // locked
-      undefined // insertion_type
+      undefined, // insertion_type
+      df_table // df_table
     );
   }
+  is_stage_0(): boolean {
+   return this.source_name.includes('stage_0');
+  }
+  is_datafactory_table(): boolean {
+    return this.df_table;
+  }
+  
 }
 
 export class TableColumn {
@@ -252,11 +265,15 @@ export interface TableSearch {
 export interface TrinoApi {
   getEventsAggregation(filters?: TableFilter, search?: TableSearch): Promise<Array<AggregatedEvent>>;
   getAllEvents(): Promise<{ events: Event[] }>;
-  getEvents(filters?: TableFilter, search?: TableSearch): Promise<Array<Event>>;
+  getEvents(filters?: TableFilter, search?: TableSearch,limit?: number): Promise<Array<Event>>;
   getTableColumns(table_full_name: string): Promise<TableColumn[]>;
 }
 export interface ArchEvent {
   timestamp: Date;
+  params_type: OperationParamsType;
+  batch_id: string;
+  batches: string[];
+  bytes_added: number;
   rows_affected: number;
   duration_ms: number; // Made required as per linter error for DetailsSidebar
 }
@@ -266,6 +283,23 @@ export interface ArchEvent {
 
 
 export class ArchDetails {
+  add_metadata(archmetadata: {}) {
+    if (!this.primary_key && archmetadata['primary_key']) {
+      this.primary_key = archmetadata['primary_key'];
+    }
+    if (!this.order_by && archmetadata['order_by']) {
+      this.order_by = archmetadata['order_by'];
+    }
+    if (!this.merge_statement && archmetadata['merge_statement']) {
+      this.merge_statement = archmetadata['merge_statement'];
+    }
+    if (!this.sql_query && archmetadata['records_query']) {
+      this.sql_query = archmetadata['records_query'];
+    }
+    if (!this.transformations && archmetadata['transformations']) {
+      this.transformations = archmetadata['transformations'];
+    }
+  }
   constructor(
     public source_table_source_id: string,
     public sink_table_source_id: string,
@@ -277,7 +311,7 @@ export class ArchDetails {
     public events?: ArchEvent[],
     public primary_key?: string,
     public order_by?: string,
-    public merge_statement?: string,
+    public merge_statement?: 'insert' | 'merge',
     public sql_query?: string,
     public transformations?: Transformation[]
   ) {}
@@ -293,9 +327,11 @@ export class ArchDetails {
 
 
 export interface FilterOptions {
-  datafactory_id?: string;
-  project_id?: string;
+  datafactory_id?: string | string[];
+  project_id?: string | string[];
   startDate?: Date;
   endDate?: Date;
-  tableId?: string;
+  locked?: boolean;
+  archStatus?: OperationStatus[];
+  paramsType?: OperationParamsType[];
 }
