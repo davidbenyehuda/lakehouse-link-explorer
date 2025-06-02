@@ -134,8 +134,8 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
         );
 
         const sourceTables = projectTables.filter(table =>
-          !targetSourceIds.has(table.source_id) ||
-          !arches.some(a => a.target === table.source_id && projectTables.some(t => t.source_id === a.source))
+          !targetSourceIds.has(table.table_id) ||
+          !arches.some(a => a.target === table.table_id && projectTables.some(t => t.table_id === a.source))
         );
 
         if (sourceTables.length === 0 && projectTables.length > 0) {
@@ -313,7 +313,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
     if (selectedTable) {
       setSourceNode(selectedTable.source_id);
       setTargetNode(null);
-      toast({ title: "Source Selected", description: `Table "${selectedTable.source_name}" set as source. Now select a target table.` });
+      toast({ title: "Source Selected", description: `Table "${selectedTable.table_name}" set as source. Now select a target table.` });
     }
   };
 
@@ -330,7 +330,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
       const sourceTable = tables.find(t => t.source_id === sourceNode);
       const targetTable = tables.find(t => t.source_id === targetNode);
       if (sourceTable && targetTable) {
-        toast({ title: "Connection Ready", description: `Create connection from "${sourceTable.source_name}" to "${targetTable.source_name}"?` });
+        toast({ title: "Connection Ready", description: `Create connection from "${sourceTable.table_name}" to "${targetTable.table_name}"?` });
         console.log(`Attempting to create arch from ${sourceNode} to ${targetNode}`);
       }
     }
@@ -370,7 +370,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
       );
     }
     onAddTable(newTable, newArch);
-    toast({ title: "Table Created", description: `Table "${newTable.source_name}" added.` });
+    toast({ title: "Table Created", description: `Table "${newTable.table_name}" added.` });
   };
 
   const handleCreateArch = (archData: Partial<ArchDetails>) => {
@@ -378,6 +378,9 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
       toast({ variant: "destructive", title: "Failed to Create Connection", description: "Missing source, target, or insertion type." });
       return;
     }
+
+    const sourceTable = tables.find(t => t.source_id === archData.source);
+    const targetTable = tables.find(t => t.source_id === archData.target);
 
     const newArch = new ArchDetails(
       archData.source, // source_table_source_id
@@ -396,7 +399,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
     );
 
     onAddArch(newArch);
-    toast({ title: "Connection Created", description: `Connection from "${newArch.source}" to "${newArch.target}" added.` });
+    toast({ title: "Connection Created", description: `Connection from "${sourceTable?.table_name}" to "${targetTable?.table_name}" added.` });
     setSourceNode(null);
     setTargetNode(null);
   };
@@ -434,7 +437,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
               onClick={handleResetFocus}
               className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm shadow flex items-center gap-1.5"
             >
-              <span>Exit Focus Mode on "{tables.find(t => t.source_id === focusedTable)?.source_name}"</span>
+              <span>Exit Focus Mode on "{tables.find(t => t.source_id === focusedTable)?.table_name}"</span>
             </button>
           </div>
         )}
@@ -488,7 +491,7 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
           <div className="flex items-center gap-2">
             {selectedTable && !sourceNode && (
               <>
-                <span className="text-sm font-medium text-gray-700">Selected: <strong>{selectedTable.source_name}</strong></span>
+                <span className="text-sm font-medium text-gray-700">Selected: <strong>{selectedTable.table_name}</strong></span>
                 <button
                   onClick={handleSetSourceNode}
                   className="px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-sm"
@@ -498,10 +501,10 @@ const TablesGraph: React.FC<TablesGraphProps> = ({
               </>
             )}
             {sourceNode && selectedTable && selectedTable.source_id === sourceNode && !targetNode && (
-              <span className="text-sm font-medium text-green-600">Source: <strong>{selectedTable.source_name}</strong>. Select a target table.</span>
+              <span className="text-sm font-medium text-green-600">Source: <strong>{selectedTable.table_name}</strong>. Select a target table.</span>
             )}
             {sourceNode && targetNode && selectedTable && (selectedTable.source_id === targetNode) && (
-              <span className="text-sm font-medium text-green-600">Target: <strong>{selectedTable.source_name}</strong>. Ready to create connection.</span>
+              <span className="text-sm font-medium text-green-600">Target: <strong>{selectedTable.table_name}</strong>. Ready to create connection.</span>
             )}
             {(sourceNode) && (
               <button

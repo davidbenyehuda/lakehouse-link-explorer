@@ -81,10 +81,7 @@ arch_type: 'insert_stage_0';
 
 
 
-export interface TableColumn {
-name: string; // name of the column ('location', 'date', 'temperature', 'humidity', 'wind_speed', 'precipitation')
-type: string | TableColumn[] | { [key: string]: TableColumn } | Map<string, TableColumn>; // type of the column ('string', 'int', 'float', 'date', 'boolean', 'array', 'record', 'map')
-}
+
 
 
 
@@ -186,14 +183,54 @@ export class Table {
     public locked?: boolean,
     public insertion_type?: OperationType
   ) {}
+
+  static fromBasicInfo(
+    table_id: string,
+    source_id: string,
+    source_name: string,
+    datafactory_id: string,
+    datafactory_name: string,
+    project_id: string,
+    project_name: string,
+    table_name: string
+  ): Table {
+    return new Table(
+      table_id,
+      source_id,
+      source_name,
+      datafactory_id,
+      datafactory_name,
+      project_id,
+      project_name,
+      table_name,
+      0, // row_count
+      0, // size_in_mb
+      new Date(), // last_updated
+      [], // columns
+      { x: 0, y: 0 }, // position
+      0, // query_count
+      undefined, // primary_key
+      undefined, // ordered_by
+      undefined, // partitioned_by
+      false, // locked
+      undefined // insertion_type
+    );
+  }
 }
 
 export class TableColumn {
   constructor(
     public name: string,
-    public type: string | TableColumn[] | { [key: string]: TableColumn } | Map<string, TableColumn>
+    public type: string 
   ) {}
 }
+
+
+export interface TableColumn {
+     name: string,
+     type: string 
+}
+
 
 export interface TableFilter {
   datafactory_id?: string[];

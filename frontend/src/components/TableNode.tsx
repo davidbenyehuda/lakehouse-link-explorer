@@ -42,7 +42,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data, selected, id }) => {
       />
 
       <div className="table-node__header text-graph-text font-semibold text-sm flex justify-between items-center">
-        <div className="truncate">{table.source_id}</div>
+        <div className="truncate">{table.table_name}</div>
         <button
           onClick={(e) => {
             e.stopPropagation(); // Prevent node selection when toggling expand
